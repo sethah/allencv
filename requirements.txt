@@ -1,0 +1,27 @@
+# local package
+-e .
+
+# main functionality
+torch>=0.4.1
+torchvision
+allennlp
+scipy
+numpy
+overrides
+ipython
+tensorflow
+pandas
+flask
+joblib
+mlflow
+toolz
+albumentations
+git+https://github.com/python-pillow/Pillow
+
+# external requirements
+click
+Sphinx
+coverage
+awscli
+flake8
+python-dotenv>=0.5.1
