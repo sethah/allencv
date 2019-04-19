@@ -8,7 +8,17 @@ from allencv.modules.im2im_encoders import Im2ImEncoder
 
 
 class ResnetEncoder(Im2ImEncoder):
+    """
+    An ``Im2ImEncoder`` that passes an input image through a Resnet model structure.
 
+    Parameters
+    ----------
+    resnet_model: ``ResNet``
+        The base Resnet model.
+    layers: ``int``
+        The input will be passed through only the first ``layers`` layers of the
+        base Resnet model.
+    """
     def __init__(self,
                  resnet_model: ResNet,
                  layers: int = 4) -> None:
@@ -30,7 +40,7 @@ class ResnetEncoder(Im2ImEncoder):
 
     @overrides
     def get_input_channels(self) -> int:
-        return self.input_channels
+        return self._input_channels
 
     @overrides
     def get_output_channels(self) -> int:

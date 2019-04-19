@@ -3,7 +3,6 @@ from typing import Dict
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
-from allennlp.modules import TextFieldEmbedder
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 

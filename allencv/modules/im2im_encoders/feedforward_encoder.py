@@ -32,15 +32,22 @@ class StdConv(nn.Module):
 @Im2ImEncoder.register("feedforward")
 class FeedforwardEncoder(Im2ImEncoder):
     """
+    A simple image encoder that passes an input through a series of convolutional layers,
+    progressively halving the input size.
 
     Parameters
     ----------
-    input_channels
-    num_layers
-    hidden_channels
-    activations
-    kernel_sizes
-    dropout
+    input_channels: ``int``
+    num_layers: ``int``
+        Number of convolutional transforms
+    hidden_channels: ``Union[int, Sequence[int]]``
+        The number of output channels for each of the convolutional stages.
+    activations: ``str``
+        The activation function to use after each convolutional stage.
+    kernel_sizes: ``Union[int, Sequence[int]]``
+        The kernel size for each of the convolutional stages.
+    dropout: ``float``
+        The amount of dropout for each convolutional stage.
     """
 
     def __init__(self,

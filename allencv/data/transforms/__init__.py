@@ -19,4 +19,5 @@ class _ImageTransformWrapper(object):
 
 ImageTransform.register("resize")(_ImageTransformWrapper(aug.Resize))
 ImageTransform.register("flip")(_ImageTransformWrapper(aug.Flip))
+ImageTransform.register("channel_shuffle")(_ImageTransformWrapper(aug.ChannelShuffle))
 ImageTransform.register("normalize")(_ImageTransformWrapper(aug.Normalize))

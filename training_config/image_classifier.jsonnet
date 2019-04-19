@@ -32,12 +32,6 @@ local BASE_ITERATOR = {
   "validation_data_path": std.extVar("VALIDATION_PATH"),
 
   "vocabulary": {
-      // Use a prespecified vocabulary for efficiency.
-      //"directory_path": std.extVar("VOCAB_PATH")
-      // Plausible config for generating the vocabulary.
-      "tokens_to_add": {
-          "tokens": ["<S>", "</S>"]
-      },
       "max_vocab_size": 50000,
       "min_count": {"tokens": 3}
   },

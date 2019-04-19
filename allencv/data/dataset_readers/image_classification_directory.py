@@ -30,7 +30,8 @@ class ImageDatasetReader(DatasetReader):
     augmentation: ``ImageTransform``s to be applied in order to the data.
     """
 
-    def __init__(self, augmentation: List[ImageTransform]):
+    def __init__(self, augmentation: List[ImageTransform], lazy: bool = False):
+        super(ImageDatasetReader, self).__init__(lazy)
         self.augmentation = aug.Compose([a.transform for a in augmentation])
 
     def augment(self, instance: Instance) -> Instance:
@@ -43,16 +44,16 @@ class ImageDatasetReader(DatasetReader):
         new_fields = {}
         for field_name, field in instance.fields.items():
             if isinstance(field, MaskField):
-                masks.append((field_name, field.as_tensor().numpy()))
+                masks.append((field_name, field.as_tensor(field.get_padding_lengths()).numpy()))
             elif isinstance(field, BoundingBoxField):
-                boxes.append((field_name, field.as_tensor().numpy()))
+                boxes.append((field_name, field.as_tensor(field.get_padding_lengths()).numpy()))
             else:
                 new_fields[field_name] = field
         augmented = self.augmentation(image=image, masks=[mask for _, mask in masks],
                                       bboxes=[box for _, box in boxes])
         new_fields['image'] = ImageField(augmented['image'].transpose(2, 0, 1))
         for i, mask in enumerate(augmented['masks']):
-            new_fields[masks[i][0]] = torch.from_numpy(mask)
+            new_fields[masks[i][0]] = MaskField(mask)
         for i, box in enumerate(augmented['bboxes']):
             new_fields[boxes[i][0]] = torch.from_numpy(box)
         return Instance(new_fields)

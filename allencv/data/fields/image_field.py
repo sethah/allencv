@@ -1,6 +1,5 @@
 from overrides import overrides
 import numpy as np
-from PIL import Image
 from typing import Dict, Sequence
 
 import torch
