@@ -19,6 +19,16 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 @DatasetReader.register("paired_image")
 class PairedImageReader(ImageDatasetReader):
     """
+    Read pairs of images as input and label.
+
+    Parameters
+    ----------
+    augmentation: ``list``, required
+        List of image augmentations to apply to each pair.
+    image_dir
+    mask_dir
+    mask_ext
+    lazy
     """
     def __init__(self,
                  augmentation: List[ImageTransform] = list(),
@@ -26,6 +36,8 @@ class PairedImageReader(ImageDatasetReader):
                  mask_dir: str = "masks",
                  mask_ext: str = None,
                  lazy: bool = False) -> None:
+        """
+        """
         super(PairedImageReader, self).__init__(augmentation, lazy)
         self._image_dir = image_dir
         self._mask_dir = mask_dir
