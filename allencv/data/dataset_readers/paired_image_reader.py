@@ -6,8 +6,6 @@ from PIL import Image
 from typing import Dict, Iterable, List
 import logging
 
-import torch
-
 from allencv.data.dataset_readers.image_classification_directory import ImageDatasetReader
 from allencv.data.fields.image_field import ImageField, MaskField, BoundingBoxField
 from allencv.data.transforms.image_transform import ImageTransform
@@ -16,28 +14,32 @@ from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, Field
 from allennlp.data.dataset_readers import DatasetReader
 
-import albumentations as aug
-
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
-@DatasetReader.register("segmentation_reader")
-class SegmentationReader(ImageDatasetReader):
+@DatasetReader.register("paired_image")
+class PairedImageReader(ImageDatasetReader):
     """
     """
     def __init__(self,
-                 augmentation: List[ImageTransform],
-                 skip_label_indexing: bool = False,
+                 augmentation: List[ImageTransform] = list(),
+                 image_dir: str = "images",
+                 mask_dir: str = "masks",
+                 mask_ext: str = None,
                  lazy: bool = False) -> None:
-        super(SegmentationReader, self).__init__(augmentation, lazy)
+        super(PairedImageReader, self).__init__(augmentation, lazy)
+        self._image_dir = image_dir
+        self._mask_dir = mask_dir
+        self._mask_ext = mask_ext
         self.lazy = lazy
-        self._skip_label_indexing = skip_label_indexing
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         file_path = Path(file_path)
-        for image_file in (file_path / "images").iterdir():
+        for image_file in (file_path / self._image_dir).iterdir():
             img_name = image_file.stem
             img = Image.open(image_file)
-            mask = Image.open(file_path / "masks" / (img_name + "_mask.gif"))
+            mask_ext = self._mask_ext if self._mask_ext is not None else image_file.suffix
+            mask_file = file_path / self._mask_dir / (img_name + mask_ext)
+            mask = Image.open(mask_file)
             sample = img.convert('RGB')
             yield self.augment(self.text_to_instance(sample, mask))
 

@@ -57,6 +57,23 @@ class ResnetEncoder(ImageEncoder):
         outputs = self._get_test_outputs(test_height, test_width)
         return [test_height // out.shape[-2] for out in outputs]
 
+    @classmethod
+    def from_string(cls, resnet_model: str, pretrained: bool = False, requires_grad: bool = False):
+        if resnet_model == 'resnet34':
+            model = resnet34(pretrained=pretrained)
+        elif resnet_model == 'resnet18':
+            model = resnet18(pretrained=pretrained)
+        elif resnet_model == 'resnet152':
+            model = resnet152(pretrained=pretrained)
+        elif resnet_model == 'resnet50':
+            model = resnet50(pretrained=pretrained)
+        elif resnet_model == 'resnet101':
+            model = resnet101(pretrained=pretrained)
+        else:
+            raise ValueError(f"Model {resnet_model} is not supported.")
+        for param in model.parameters():
+            param.requires_grad = requires_grad
+        return cls(model)
 
 @ImageEncoder.register("pretrained_resnet")
 class PretrainedResnetEncoder(ResnetEncoder):

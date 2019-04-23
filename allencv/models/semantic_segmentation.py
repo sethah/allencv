@@ -8,7 +8,6 @@ from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 
-from allencv.modules.feature_pyramid import Upsample
 from allencv.modules.image_encoders import ImageEncoder
 from allencv.modules.image_decoders import ImageDecoder
 

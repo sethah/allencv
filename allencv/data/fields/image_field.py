@@ -22,8 +22,11 @@ class ImageField(Field[np.array]):
                  image: np.ndarray,
                  channels_first: bool = True,
                  padding_value: int = 0) -> None:
-        assert len(image.shape) == 3
+        if len(image.shape) == 2:
+            image = image[np.newaxis, :, :]
+            channels_first = True
         self.image = image
+        assert len(image.shape) == 3
         if not channels_first:
             self.image = self.image.transpose(2, 0, 1)
         self.padding_value = padding_value
@@ -55,6 +58,13 @@ class ImageField(Field[np.array]):
 
 
 class MaskField(ImageField):
+
+    @overrides
+    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
+        np_img = self.image
+        if not self.channels_first:
+            np_img = self.image.transpose(1, 2, 0)
+        return torch.from_numpy(np_img).squeeze().float()
 
     def __str__(self) -> str:
         return f"MaskField with shape: {self.image.shape}."
