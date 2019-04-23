@@ -9,7 +9,7 @@ from allennlp.data.fields import Field
 
 class ImageField(Field[np.array]):
     """
-    An ``ImageField`` stores an image a ``np.ndarray`` which must have exactly three
+    An ``ImageField`` stores an image as a ``np.ndarray`` which must have exactly three
     dimensions.
 
     Parameters
@@ -58,6 +58,10 @@ class ImageField(Field[np.array]):
 
 
 class MaskField(ImageField):
+    """
+    You may want to use a ``MaskField`` to store an image that should be treated as a label
+    instead of an input.
+    """
 
     @overrides
     def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
