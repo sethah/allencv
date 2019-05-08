@@ -7,6 +7,10 @@ from allencv.modules.im2vec_encoders.im2vec_encoder import Im2VecEncoder
 
 @Im2VecEncoder.register("flatten")
 class FlattenEncoder(Im2VecEncoder):
+    """
+    An ``Im2VecEncoder`` that simply flattens the input image and optionally passes it
+    through a feedforward network.
+    """
 
     def __init__(self,
                  input_channels: int,

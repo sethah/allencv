@@ -52,13 +52,12 @@ class BasicDecoder(ImageDecoder):
         self._output_channels = output_channels
         self.upsampling_stages = nn.ModuleList()
         for n in up_scales:
-            self.upsampling_stages.append(Upsample(input_channels, self._output_channels, num_stages=n, scale_factor=2))
+            stage = Upsample(input_channels, self._output_channels, num_stages=n, scale_factor=2)
+            self.upsampling_stages.append(stage)
 
     def forward(self,  # type: ignore
                 images: Sequence[torch.Tensor]) -> torch.Tensor:
         # pylint: disable=arguments-differ
-        # largest_image = max(images, key=lambda im: im.shape[-2])
-        # scale_factors = []
         upsampled_output = 0.
         for upstage, image in zip(self.upsampling_stages, images):
             upsampled_output += upstage.forward(image)

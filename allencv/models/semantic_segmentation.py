@@ -15,6 +15,10 @@ from allencv.modules.image_decoders import ImageDecoder
 @Model.register("semantic_segmentation")
 class SemanticSegmentationModel(Model):
     """
+    This model uses an ``ImageEncoder`` to extract features from an image at one or more
+    scales, and then decodes those images to a single feature map, which is then upscaled
+    back to the original size. It provides pixel level classifications from a known subset
+    possible class labels.
     """
     def __init__(self,
                  encoder: ImageEncoder,
@@ -22,6 +26,7 @@ class SemanticSegmentationModel(Model):
                  num_classes: int,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(SemanticSegmentationModel, self).__init__(None)
+        # TODO: use vocab to get label namespace?
         self._encoder = encoder
         self.num_classes = num_classes
         self._decoder = decoder
@@ -53,8 +58,8 @@ class SemanticSegmentationModel(Model):
         if mask is not None:
             loss = self._loss(logits, mask.squeeze().long())
             output_dict["loss"] = loss
-            self._accuracy(logits.permute(0, 2, 3, 1).contiguous().view(-1, self.num_classes), label.view(-1))
-
+            self._accuracy(logits.permute(0, 2, 3, 1).contiguous().view(-1, self.num_classes),
+                           mask.view(-1))
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
