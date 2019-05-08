@@ -34,15 +34,15 @@ class SemanticSegmentationModel(Model):
 
     def forward(self,  # type: ignore
                 image: torch.FloatTensor,
-                label: torch.LongTensor = None) -> Dict[str, torch.Tensor]:
+                mask: torch.LongTensor = None) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
 
         encoded_images = self._encoder.forward(image)
         decoded = self._decoder.forward(encoded_images)
         decoded = self.final_conv(decoded)
         # scale image back to label size if possible, otherwise back to original image size
-        if label is not None:
-            scale_factor = label.shape[-2] // decoded.shape[-2]
+        if mask is not None:
+            scale_factor = mask.shape[-2] // decoded.shape[-2]
         else:
             scale_factor = image.shape[-2] // decoded.shape[-2]
         logits = F.interpolate(decoded, scale_factor=scale_factor, mode='bilinear')
@@ -50,8 +50,8 @@ class SemanticSegmentationModel(Model):
         probs = F.softmax(logits, dim=1)
 
         output_dict = {"logits": logits, "probs": probs}
-        if label is not None:
-            loss = self._loss(logits, label.squeeze().long())
+        if mask is not None:
+            loss = self._loss(logits, mask.squeeze().long())
             output_dict["loss"] = loss
             self._accuracy(logits.permute(0, 2, 3, 1).contiguous().view(-1, self.num_classes), label.view(-1))
 

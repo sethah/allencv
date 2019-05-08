@@ -9,54 +9,14 @@ import logging
 import torch
 
 from allencv.data.transforms.image_transform import ImageTransform
-from allencv.data.fields.image_field import ImageField, MaskField, BoundingBoxField
+from allencv.data.fields.image_field import ImageField
+from allencv.data.dataset_readers.image_dataset_reader import ImageDatasetReader
 
 from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, Field
 from allennlp.data.dataset_readers import DatasetReader
 
-import albumentations as aug
-
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
-
-
-class ImageDatasetReader(DatasetReader):
-    """
-    A dataset reader that includes an augmentation method. This method will automatically
-    identify all images and bounding boxes which may need to be transformed.
-
-    Parameters
-    ----------
-    augmentation: ``ImageTransform``s to be applied in order to the data.
-    """
-
-    def __init__(self, augmentation: List[ImageTransform], lazy: bool = False):
-        super(ImageDatasetReader, self).__init__(lazy)
-        self.augmentation = aug.Compose([a.transform for a in augmentation])
-
-    def augment(self, instance: Instance) -> Instance:
-        image_field = instance.fields['image']
-        image = image_field.as_tensor(image_field.get_padding_lengths()).numpy()
-        if image_field.channels_first:
-            image = image.transpose(1, 2, 0)
-        masks = []
-        boxes = []
-        new_fields = {}
-        for field_name, field in instance.fields.items():
-            if isinstance(field, MaskField):
-                masks.append((field_name, field.as_tensor(field.get_padding_lengths()).numpy()))
-            elif isinstance(field, BoundingBoxField):
-                boxes.append((field_name, field.as_tensor(field.get_padding_lengths()).numpy()))
-            else:
-                new_fields[field_name] = field
-        augmented = self.augmentation(image=image, masks=[mask for _, mask in masks],
-                                      bboxes=[box for _, box in boxes])
-        new_fields['image'] = ImageField(augmented['image'].transpose(2, 0, 1))
-        for i, mask in enumerate(augmented['masks']):
-            new_fields[masks[i][0]] = MaskField(mask)
-        for i, box in enumerate(augmented['bboxes']):
-            new_fields[boxes[i][0]] = torch.from_numpy(box)
-        return Instance(new_fields)
 
 
 @DatasetReader.register("image_classification_directory")
@@ -94,10 +54,11 @@ class ImageClassificationDirectory(ImageDatasetReader):
                         logger.error(f"Couldn't read {img_file}")
                         continue
                     sample = img.convert('RGB')
-                    yield self.augment(self.text_to_instance(sample, label))
+                    img, _, _ = self.augment_(np.array(img))
+                    yield self.text_to_instance(sample, label)
 
     @overrides
-    def text_to_instance(self, image: Image.Image, label: str = None) -> Instance:
+    def text_to_instance(self, image: np.ndarray, label: str = None) -> Instance:
         fields: Dict[str, Field] = {}
         fields['image'] = ImageField(np.array(image), channels_first=False)
         if label is not None:
