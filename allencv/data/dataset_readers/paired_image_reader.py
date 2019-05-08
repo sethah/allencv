@@ -59,7 +59,7 @@ class PairedImageReader(ImageDatasetReader):
     @overrides
     def text_to_instance(self, image: np.ndarray, mask: np.ndarray = None) -> Instance:
         fields: Dict[str, Field] = {}
-        fields['image'] = ImageField(np.array(image), channels_first=False)
+        fields['image'] = ImageField(np.array(image).transpose(2, 0, 1), channels_first=False)
         if mask is not None:
             if len(mask.shape) == 2:
                 mask = mask[:, :, np.newaxis]

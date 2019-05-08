@@ -56,10 +56,13 @@ class SemanticSegmentationModel(Model):
 
         output_dict = {"logits": logits, "probs": probs}
         if mask is not None:
-            loss = self._loss(logits, mask.squeeze().long())
+            flattened_logits = logits.permute(0, 2, 3, 1).contiguous().view(-1, self.num_classes)
+            flattened_mask = mask.view(-1).long()
+            # TODO: is it ok to silently filter labels that are out of range?
+            ignore = flattened_mask >= self.num_classes
+            loss = self._loss(flattened_logits[~ignore, :], flattened_mask[~ignore])
             output_dict["loss"] = loss
-            self._accuracy(logits.permute(0, 2, 3, 1).contiguous().view(-1, self.num_classes),
-                           mask.view(-1))
+            self._accuracy(flattened_logits[~ignore, :], flattened_mask[~ignore])
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

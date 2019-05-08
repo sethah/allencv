@@ -31,13 +31,15 @@ local VALID_AUGMENTATION = [
             }
         ];
 local TRAIN_READER = {
-        "type": "segmentation_reader",
+        "type": "paired_image",
         "augmentation": TRAIN_AUGMENTATION,
+        "mask_ext": ".png",
         "lazy": true
 };
 local VALID_READER = {
-        "type": "segmentation_reader",
+        "type": "paired_image",
         "augmentation": TRAIN_AUGMENTATION,
+        "mask_ext": ".png",
         "lazy": true
 };
 
@@ -69,7 +71,7 @@ local BASE_ITERATOR = {
         "input_channels": 128,
         "output_channels": 256
     },
-    "num_classes": 2
+    "num_classes": 21
   },
   "iterator": BASE_ITERATOR,
   "trainer": {
