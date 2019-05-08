@@ -1,0 +1,1 @@
+from allencv.modules.im2vec_encoders.im2vec_encoder import Im2VecEncoder
