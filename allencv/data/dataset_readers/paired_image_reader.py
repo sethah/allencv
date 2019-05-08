@@ -53,7 +53,7 @@ class PairedImageReader(ImageDatasetReader):
             mask_file = file_path / self._mask_dir / (img_name + mask_ext)
             mask = Image.open(mask_file)
             sample = img.convert('RGB')
-            img, _, masks = self.augment(np.array(sample), masks=[np.array(mask)])
+            img, masks, _ = self.augment(np.array(sample), masks=[np.array(mask)])
             yield self.text_to_instance(img, masks[0])
 
     @overrides

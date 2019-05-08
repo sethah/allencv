@@ -54,13 +54,13 @@ class ImageClassificationDirectory(ImageDatasetReader):
                         logger.error(f"Couldn't read {img_file}")
                         continue
                     sample = img.convert('RGB')
-                    img, _, _ = self.augment_(np.array(img))
+                    img, _, _ = self.augment(np.array(sample))
                     yield self.text_to_instance(sample, label)
 
     @overrides
     def text_to_instance(self, image: np.ndarray, label: str = None) -> Instance:
         fields: Dict[str, Field] = {}
-        fields['image'] = ImageField(np.array(image), channels_first=False)
+        fields['image'] = ImageField(np.array(image).transpose(2, 0, 1), channels_first=False)
         if label is not None:
             fields['label'] = LabelField(label, skip_indexing=self._skip_label_indexing)
         return Instance(fields)
