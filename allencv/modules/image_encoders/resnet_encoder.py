@@ -7,7 +7,7 @@ from torchvision.models.resnet import ResNet, resnet34, resnet50, resnet18, resn
 from allencv.modules.image_encoders import ImageEncoder
 
 
-@ImageEncoder.register("backbone")
+@ImageEncoder.register("resnet_encoder")
 class ResnetEncoder(ImageEncoder):
     """
         An ``ImageEncoder`` that passes an input image through a Resnet model structure.
@@ -85,10 +85,8 @@ class PretrainedResnetEncoder(ResnetEncoder):
         Name of the pretrained Resnet variant.
     requires_grad: ``bool``, optional (default = ``False``)
         Whether to continue training the Resnet model.
-    num_layers: ``int``, optional (default = ``4``)
-        How many of the 4 Resnet layers to include in the encoder.
     """
-    def __init__(self, resnet_model: str, requires_grad: bool = False, num_layers: int = 4):
+    def __init__(self, resnet_model: str, requires_grad: bool = False):
         if resnet_model == 'resnet34':
             model = resnet34(pretrained=True)
         elif resnet_model == 'resnet18':

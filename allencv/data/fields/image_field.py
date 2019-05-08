@@ -56,8 +56,6 @@ class ImageField(Field[np.array]):
 
     @overrides
     def empty_field(self):  # pylint: disable=no-self-use
-        # Pass the padding_value, so that any outer field, e.g., `ListField[ArrayField]` uses the
-        # same padding_value in the padded ArrayFields
         return ImageField(np.empty(self.image.shape), padding_value=self.padding_value)
 
     def __str__(self) -> str:
