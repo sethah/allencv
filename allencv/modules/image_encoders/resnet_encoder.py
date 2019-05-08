@@ -10,7 +10,7 @@ from allencv.modules.image_encoders import ImageEncoder
 @ImageEncoder.register("backbone")
 class ResnetEncoder(ImageEncoder):
     """
-        An ``Im2ImEncoder`` that passes an input image through a Resnet model structure.
+        An ``ImageEncoder`` that passes an input image through a Resnet model structure.
 
         Parameters
         ----------
@@ -74,6 +74,7 @@ class ResnetEncoder(ImageEncoder):
         for param in model.parameters():
             param.requires_grad = requires_grad
         return cls(model)
+
 
 @ImageEncoder.register("pretrained_resnet")
 class PretrainedResnetEncoder(ResnetEncoder):

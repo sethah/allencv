@@ -37,6 +37,7 @@ class SamePad2d(nn.Module):
     def __repr__(self):
         return self.__class__.__name__
 
+
 @ImageEncoder.register("feature_pyramid")
 class FPN(ImageEncoder):
     """
@@ -50,6 +51,13 @@ class FPN(ImageEncoder):
     The backbone must provide relative scale factors for its feature maps.
 
     Reference: https://arxiv.org/abs/1612.03144
+
+    Parameters
+    ----------
+    backbone: ``ImageEncoder``
+        Backbone that produces feature maps at various scales.
+    output_channels: ``int``
+        The number of output channels in each output feature map.
     """
     def __init__(self,
                  backbone: ImageEncoder,
