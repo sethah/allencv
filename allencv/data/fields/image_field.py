@@ -45,7 +45,14 @@ class ImageField(Field[np.array]):
         np_img = self.image
         if not self.channels_first:
             np_img = self.image.transpose(1, 2, 0)
-        return torch.from_numpy(np_img).float()
+            pad_img = torch.zeros(padding_lengths['height'],
+                                  padding_lengths['width'], padding_lengths['channels'])
+        else:
+            pad_img = torch.zeros(padding_lengths['channels'],
+                              padding_lengths['height'], padding_lengths['width'])
+        img = torch.from_numpy(np_img).float()
+        pad_img[: img.shape[0], : img.shape[1], : img.shape[2]].copy_(img)
+        return pad_img
 
     @overrides
     def empty_field(self):  # pylint: disable=no-self-use
