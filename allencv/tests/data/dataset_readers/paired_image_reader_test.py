@@ -13,7 +13,7 @@ class TestImageMaskReader(AllenCvTestCase):
         assert len(instances) == 1
         fields = instances[0].fields
         assert isinstance(fields['image'], ImageField)
-        assert isinstance(fields['label'], MaskField)
+        assert isinstance(fields['mask'], MaskField)
 
     def test_lazy(self):
         reader = PairedImageReader(mask_ext=".png", lazy=True)
@@ -22,7 +22,7 @@ class TestImageMaskReader(AllenCvTestCase):
         assert len(list(instances)) == 1
         fields = list(instances)[0].fields
         assert isinstance(fields['image'], ImageField)
-        assert isinstance(fields['label'], MaskField)
+        assert isinstance(fields['mask'], MaskField)
 
     def test_mask_extension_default(self):
         reader = PairedImageReader(mask_dir="images")
