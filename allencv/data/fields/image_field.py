@@ -51,7 +51,7 @@ class ImageField(Field[np.array]):
             pad_img = torch.zeros(padding_lengths['channels'],
                               padding_lengths['height'], padding_lengths['width'])
         img = torch.from_numpy(np_img).float()
-        pad_img[: img.shape[0], : img.shape[1], : img.shape[2]].copy_(img)
+        pad_img[: img.shape[0], :img.shape[1], :img.shape[2]].copy_(img)
         return pad_img
 
     @overrides
