@@ -1,8 +1,4 @@
 # pylint: disable=no-self-use,invalid-name
-from pathlib import Path
-import pytest
-from unittest import TestCase
-
 from allencv.common.testing.test_case import AllenCvTestCase
 from allencv.data.dataset_readers import PairedImageReader
 from allencv.data.fields import ImageField, MaskField
@@ -28,7 +24,7 @@ class TestImageMaskReader(AllenCvTestCase):
         assert isinstance(fields['image'], ImageField)
         assert isinstance(fields['label'], MaskField)
 
-    def test_mask_extension(self):
+    def test_mask_extension_default(self):
         reader = PairedImageReader(mask_dir="images")
         instances = reader.read(TestImageMaskReader.FIXTURES_ROOT / "data" / "image_mask_reader")
         assert len(instances) == 1
