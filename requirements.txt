@@ -11,10 +11,6 @@ overrides
 ipython
 tensorflow
 pandas
-flask
-joblib
-mlflow
-toolz
 albumentations
 git+https://github.com/python-pillow/Pillow
 
