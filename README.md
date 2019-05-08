@@ -34,8 +34,8 @@ Build a simple classifier
 
 ```
 TRAIN_PATH=$ALLENCV_DIR/data/PetImages/train \
-VALIDATION_PATH=$ALLENCV_DIR/allencv/data/PetImages/valid \
-allennlp train $ALLENCV_DIR/allencv/training_config/image_classifier.jsonnet \
+VALIDATION_PATH=$ALLENCV_DIR/data/PetImages/valid \
+allennlp train $ALLENCV_DIR/training_config/image_classifier.jsonnet \
 --include-package allencv.data.dataset_readers \
 --include-package allencv.modules.im2im_encoders \
 --include-package allencv.models.basic_classifier \
