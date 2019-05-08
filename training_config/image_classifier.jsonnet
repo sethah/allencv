@@ -2,6 +2,36 @@ local NUM_GPUS = 1;
 local NUM_THREADS = 1;
 local NUM_EPOCHS = 15;
 
+local TRAIN_AUGMENTATION = [
+            {
+                "type": "resize",
+                "height": 512,
+                "width": 512
+            }, {
+                "type": "normalize",
+                "mean": [0.485, 0.456, 0.406],
+                "std": [0.229, 0.224, 0.225]
+            }, {
+                "type": "flip",
+                "p": 0.5
+            }, {
+                "type": "channel_shuffle",
+                "p": 0.5
+            }
+        ];
+
+local VALID_AUGMENTATION = [
+            {
+                "type": "resize",
+                "height": 512,
+                "width": 512
+            }, {
+                "type": "normalize",
+                "mean": [0.485, 0.456, 0.406],
+                "std": [0.229, 0.224, 0.225]
+            }
+        ];
+
 local BASE_READER = {
         "type": "image_classification_directory",
         "augmentation": [
@@ -19,6 +49,16 @@ local BASE_READER = {
             }
         ]
 };
+local TRAIN_READER = {
+        "type": "image_classification_directory",
+        "augmentation": TRAIN_AUGMENTATION,
+        "lazy": true
+};
+local VALID_READER = {
+        "type": "image_classification_directory",
+        "augmentation": VALID_AUGMENTATION,
+        "lazy": true
+};
 
 local BASE_ITERATOR = {
   "type": "basic",
@@ -27,7 +67,8 @@ local BASE_ITERATOR = {
 };
 
 {
-  "dataset_reader": BASE_READER,
+  "dataset_reader": TRAIN_READER,
+  "validation_dataset_reader": VALID_READER,
   "train_data_path": std.extVar("TRAIN_PATH"),
   "validation_data_path": std.extVar("VALIDATION_PATH"),
 
