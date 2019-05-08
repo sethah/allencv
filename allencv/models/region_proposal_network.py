@@ -1,11 +1,10 @@
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average

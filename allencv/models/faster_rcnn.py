@@ -3,27 +3,19 @@ from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
-from allennlp.training.metrics import CategoricalAccuracy
 
-from allencv.modules.image_encoders import ImageEncoder
 from allencv.models.region_proposal_network import RPN
 from allencv.modules.im2vec_encoders import Im2VecEncoder
-from allencv.modules.im2im_encoders import FeedforwardEncoder
 from allennlp.training.metrics import Average
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
-from maskrcnn_benchmark.structures.image_list import ImageList
-from maskrcnn_benchmark.modeling.rpn.loss import RPNLossComputation, generate_rpn_labels
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
 from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
-from maskrcnn_benchmark.modeling.rpn.anchor_generator import AnchorGenerator
 from maskrcnn_benchmark.modeling.matcher import Matcher
-from maskrcnn_benchmark.modeling.rpn.inference import RPNPostProcessor
 from maskrcnn_benchmark.modeling.poolers import Pooler
 from maskrcnn_benchmark.modeling.roi_heads.box_head.loss import FastRCNNLossComputation
 from maskrcnn_benchmark.modeling.roi_heads.box_head.inference import PostProcessor
