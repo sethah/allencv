@@ -18,6 +18,7 @@ from maskrcnn_benchmark.modeling.roi_heads.box_head.loss import FastRCNNLossComp
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 
 from allencv.models.object_detection.region_proposal_network import RPN
+from allencv.models.object_detection import utils as object_utils
 from allencv.modules.im2vec_encoders import Im2VecEncoder
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -92,11 +93,11 @@ class FasterRCNN(Model):
         rpn_out = self.rpn.forward(image, image_sizes, boxes)
         rpn_out = self.rpn.decode(rpn_out)
         features: List[torch.Tensor] = rpn_out['features']
-        proposals: List[BoxList] = self.rpn._padded_tensor_to_box_list(rpn_out['proposals'],
+        proposals: List[BoxList] = object_utils.padded_tensor_to_box_list(rpn_out['proposals'],
                                                                        image_sizes)
         if boxes is not None:
             # subsample each set of proposals to a pre-specified number, e.g. 512
-            boxlist = self.rpn._padded_tensor_to_box_list(boxes, image_sizes, labels=box_classes)
+            boxlist = object_utils.padded_tensor_to_box_list(boxes, image_sizes, labels=box_classes)
             with torch.no_grad():
                 sampled_proposals = self.roi_loss_evaluator.subsample(proposals, boxlist)
         else:
@@ -136,9 +137,9 @@ class FasterRCNN(Model):
         decoded: List[BoxList] = self.decoder.forward((output_dict['class_logits'],
                                                        output_dict['box_regression']),
                                                      output_dict['proposals'])
-        output_dict['scores'] = self.rpn._pad_tensors([d.get_field("scores") for d in decoded])
-        output_dict['labels'] = self.rpn._pad_tensors([d.get_field("labels") for d in decoded])
-        output_dict['decoded'] = self.rpn._pad_tensors([d.bbox for d in decoded])
+        output_dict['scores'] = object_utils.pad_tensors([d.get_field("scores") for d in decoded])
+        output_dict['labels'] = object_utils.pad_tensors([d.get_field("labels") for d in decoded])
+        output_dict['decoded'] = object_utils.pad_tensors([d.bbox for d in decoded])
         # split_logits = class_logits.split([len(p) for p in sampled_proposals])
         # # [(13, 4), (17, 4)] -> (2, 17, 4)
         # split_logits = self.rpn._pad_tensors(split_logits)

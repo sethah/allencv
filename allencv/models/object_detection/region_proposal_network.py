@@ -13,6 +13,7 @@ from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average
 
 from allencv.modules.image_encoders import ImageEncoder, ResnetEncoder, FPN
+from allencv.models.object_detection import utils as object_utils
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.image_list import ImageList
@@ -116,7 +117,7 @@ class RPN(Model):
         out = {'features': features, 'objectness': objectness,
                'rpn_box_regression': rpn_box_regression, 'anchors': anchors}
         if boxes is not None:
-            box_list: List[BoxList] = self._padded_tensor_to_box_list(boxes, image_sizes)
+            box_list: List[BoxList] = object_utils.padded_tensor_to_box_list(boxes, image_sizes)
             loss_objectness, loss_rpn_box_reg = self.loss_evaluator(
                 anchors, objectness, rpn_box_regression, box_list
             )
@@ -133,38 +134,16 @@ class RPN(Model):
         proposals: List[BoxList] = self.decoder(output_dict['anchors'], output_dict['objectness'],
                                                 output_dict['rpn_box_regression'])
         proposal_scores = [b.get_field("objectness").unsqueeze(1) for b in proposals]
-        proposals: torch.Tensor = self._pad_tensors([p.bbox for p in proposals])
-        proposal_scores: torch.Tensor = self._pad_tensors(proposal_scores)[:, :, 0]
+        proposals: torch.Tensor = object_utils.pad_tensors([p.bbox for p in proposals])
+        proposal_scores: torch.Tensor = object_utils.pad_tensors(proposal_scores)[:, :, 0]
         output_dict['proposals'] = proposals
         output_dict['proposal_scores'] = proposal_scores
         return output_dict
 
-    def _pad_tensors(self, tensors: List[torch.Tensor]):
-        max_proposals = max([x.shape[0] for x in tensors])
-        pad_shape = (len(tensors), max_proposals) + (() if tensors[0].dim() <= 1 else tensors[0].shape[1:])
-        padded = torch.zeros(pad_shape, device=tensors[0].device)
-        for i, t in enumerate(tensors):
-            padded[i, :t.shape[0], ...] = t
-        return padded
-
-    def _padded_tensor_to_box_list(self,
-                                   padded_tensor: torch.Tensor,
-                                   image_sizes: torch.Tensor,
-                                   **kwargs) -> List[BoxList]:
-        im_sizes = [(x[1].item(), x[0].item()) for x in image_sizes]
-        box_list = []
-        for i, (image_boxes, image_size) in enumerate(zip(padded_tensor, im_sizes)):
-            # remove boxes that are all zeros (padding)
-            mask = torch.any(image_boxes != 0., dim=1)
-            bl = BoxList(image_boxes[mask], (image_size[1], image_size[0]))
-            for field_name, field_value in kwargs.items():
-                bl.add_field(field_name, field_value[i][mask])
-            box_list.append(bl)
-        return box_list
-
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {k: v.get_metric(reset) for k, v in self._loss_meters.items()}
         return metrics
+
 
 @RPN.register("pretrained")
 class PretrainedRPN(RPN):
