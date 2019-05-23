@@ -3,22 +3,21 @@ from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
-
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
-
-from allencv.models.region_proposal_network import RPN
-from allencv.modules.im2vec_encoders import Im2VecEncoder
 from allennlp.training.metrics import Average
-
-from maskrcnn_benchmark.structures.bounding_box import BoxList
+from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import \
+    BalancedPositiveNegativeSampler
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
-from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import BalancedPositiveNegativeSampler
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.modeling.poolers import Pooler
-from maskrcnn_benchmark.modeling.roi_heads.box_head.loss import FastRCNNLossComputation
 from maskrcnn_benchmark.modeling.roi_heads.box_head.inference import PostProcessor
+from maskrcnn_benchmark.modeling.roi_heads.box_head.loss import FastRCNNLossComputation
+from maskrcnn_benchmark.structures.bounding_box import BoxList
+
+from allencv.models.object_detection.region_proposal_network import RPN
+from allencv.modules.im2vec_encoders import Im2VecEncoder
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -38,6 +37,10 @@ class FasterRCNN(Model):
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(FasterRCNN, self).__init__(vocab)
         self.rpn = rpn
+        loaded = torch.load("/home/sethah/ssd/allencv/models/tennis_rpn6/best.th")
+        self.rpn.load_state_dict(loaded)
+        for p in self.rpn.parameters():
+            p.requires_grade = False
         self.pooler = Pooler(
             output_size=(pooler_resolution, pooler_resolution),
             scales=pooler_scales,
@@ -55,7 +58,7 @@ class FasterRCNN(Model):
         self.bbox_pred = nn.Linear(representation_size, num_bbox_reg_classes * 4)
         self.decoder = PostProcessor()
         matcher = Matcher(0.5, 0.5, allow_low_quality_matches=True)
-        batch_size_per_image = 512
+        batch_size_per_image = 64
         sampler = BalancedPositiveNegativeSampler(batch_size_per_image, positive_fraction=.25)
         box_coder = BoxCoder(weights=(1., 1., 1., 1.))
         self.roi_loss_evaluator = FastRCNNLossComputation(
@@ -76,6 +79,7 @@ class FasterRCNN(Model):
                 boxes: torch.Tensor = None,  # (batch_size, s, 4)
                 box_classes: torch.Tensor = None):
         rpn_out = self.rpn.forward(image, image_sizes, boxes)
+        rpn_out = self.rpn.decode(rpn_out)
         features: List[torch.Tensor] = rpn_out['features']
         proposals: torch.Tensor = rpn_out['proposals']
         proposals_: List[BoxList] = self.rpn._padded_tensor_to_box_list(proposals, image_sizes)
@@ -84,6 +88,8 @@ class FasterRCNN(Model):
             boxlist = self.rpn._padded_tensor_to_box_list(boxes, image_sizes, labels=box_classes)
             with torch.no_grad():
                 sampled_proposals_ = self.roi_loss_evaluator.subsample(proposals_, boxlist)
+        else:
+            sampled_proposals_ = proposals_
 
         # roi pool and pass through feature extractor
         # (b, num_proposal_regions_in_batch, 14, 14)
@@ -118,7 +124,7 @@ class FasterRCNN(Model):
             rpn_classifier_loss = rpn_out['loss_objectness']
             rpn_regression_loss = rpn_out['loss_rpn_box_reg']
             classifier_loss, regression_loss = self.roi_loss_evaluator([class_logits], [box_regression])
-            out['loss'] = 0.003*classifier_loss + regression_loss + 0.1*rpn_classifier_loss + rpn_regression_loss
+            out['loss'] = 0.003*classifier_loss + regression_loss# + 0.1*rpn_classifier_loss + rpn_regression_loss
             self._loss_meters['rpn_cls_loss'](rpn_out['loss_objectness'].item())
             self._loss_meters['rpn_reg_loss'](rpn_out['loss_rpn_box_reg'].item())
             self._loss_meters['roi_cls_loss'](classifier_loss.item())

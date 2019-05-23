@@ -40,13 +40,13 @@ class RPN(Model):
                  anchor_sizes: List[int] = [128, 256, 512],
                  anchor_aspect_ratios: List[float] = [0.5, 1.0, 2.0],
                  anchor_strides: List[int] = [8, 16, 32],
+                 batch_size_per_image: int = 256,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RPN, self).__init__(None)
 
         # the BoxCoder just converts the relative regression offsets into absolute
         # coordinates
         box_coder = BoxCoder(weights=(1., 1., 1., 1.))
-        batch_size_per_image = 256
 
         # sampler is responsible for selecting a subset of anchor boxes for computing the loss
         # this makes sure each batch has reasonable balance of foreground/background labels
@@ -74,7 +74,7 @@ class RPN(Model):
                                                  box_coder,
                                                  generate_rpn_labels)
         self.anchor_generator = AnchorGenerator(anchor_sizes, anchor_aspect_ratios, anchor_strides,
-                                                straddle_thresh=200)
+                                                straddle_thresh=0)
         self.num_anchors = self.anchor_generator.num_anchors_per_location()[0]
 
         # TODO: backbone must produce maps with all same number of channels
@@ -165,18 +165,21 @@ class RPN(Model):
         return metrics
 
 
+@RPN.register("detectron_rpn")
 @Model.register("detectron_rpn")
 class PretrainedDetectronRPN(RPN):
 
     def __init__(self,
                  anchor_sizes: List[int] = [128, 256, 512],
                  anchor_aspect_ratios: List[float] = [0.5, 1.0, 2.0],
-                 anchor_strides: List[int] = [8, 16, 32]):
+                 anchor_strides: List[int] = [8, 16, 32],
+                 batch_size_per_image: int = 256):
         backbone = ResnetEncoder('resnet50')
         fpn = FPN(backbone, 256)
         super(PretrainedDetectronRPN, self).__init__(fpn, anchor_strides=anchor_strides,
                                                      anchor_aspect_ratios=anchor_aspect_ratios,
-                                                     anchor_sizes=anchor_sizes)
+                                                     anchor_sizes=anchor_sizes,
+                                                     batch_size_per_image=batch_size_per_image)
         # TODO: don't rely on their silly config?
         cfg.MODEL.WEIGHT = "catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x"
         checkpointer = DetectronCheckpointer(cfg, None, save_dir=None)
@@ -192,6 +195,8 @@ class PretrainedDetectronRPN(RPN):
         resnet_dict = {k: v for k, v in backbone_dict.items()}
         backbone.load_state_dict(resnet_dict, strict=False)
         self._load_fpn_detectron_state(fpn, f['model'])
+        # for p in self.backbone.parameters():
+        #     p.requires_grad = False
 
     def _load_fpn_detectron_state(self, fpn, state: Dict[str, torch.Tensor]):
         for i in range(4):
