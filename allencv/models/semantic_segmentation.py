@@ -1,3 +1,5 @@
+import logging
+from overrides import overrides
 from typing import Dict
 
 import torch
@@ -8,9 +10,11 @@ from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import CategoricalAccuracy
 
+from allencv.common import util
 from allencv.modules.image_encoders import ImageEncoder
 from allencv.modules.image_decoders import ImageDecoder
 
+logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 @Model.register("semantic_segmentation")
 class SemanticSegmentationModel(Model):
@@ -24,8 +28,12 @@ class SemanticSegmentationModel(Model):
                  encoder: ImageEncoder,
                  decoder: ImageDecoder,
                  num_classes: int,
+                 batch_size_per_image: int = None,
+                 sample_positive_fraction: float = 0.5,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(SemanticSegmentationModel, self).__init__(None)
+        self._batch_size_per_image = batch_size_per_image
+        self._sample_positive_fraction = sample_positive_fraction
         # TODO: use vocab to get label namespace?
         self._encoder = encoder
         self.num_classes = num_classes
@@ -50,6 +58,7 @@ class SemanticSegmentationModel(Model):
             scale_factor = mask.shape[-2] // decoded.shape[-2]
         else:
             scale_factor = image.shape[-2] // decoded.shape[-2]
+
         logits = F.interpolate(decoded, scale_factor=scale_factor, mode='bilinear')
 
         probs = F.softmax(logits, dim=1)
@@ -60,9 +69,27 @@ class SemanticSegmentationModel(Model):
             flattened_mask = mask.view(-1).long()
             # TODO: is it ok to silently filter labels that are out of range?
             ignore = flattened_mask >= self.num_classes
-            loss = self._loss(flattened_logits[~ignore, :], flattened_mask[~ignore])
+            flattened_mask[ignore] = -1
+            # balance the positive and negative samples in each batch
+            if self._batch_size_per_image is None:
+                batch_size = image.shape[-2] * image.shape[-1]
+            else:
+                batch_size = self._batch_size_per_image
+            neg_idxs, pos_idxs = util.sample_balanced_classes([flattened_mask],
+                                                              batch_size * logits.shape[0],
+                                                              self._sample_positive_fraction)
+            sampled_pos_inds = torch.nonzero(torch.cat(neg_idxs, dim=0)).squeeze(1)
+            sampled_neg_inds = torch.nonzero(torch.cat(pos_idxs, dim=0)).squeeze(1)
+
+            sampled_inds = torch.cat([sampled_pos_inds, sampled_neg_inds], dim=0)
+            loss = self._loss(flattened_logits[sampled_inds, :], flattened_mask[sampled_inds])
             output_dict["loss"] = loss
             self._accuracy(flattened_logits[~ignore, :], flattened_mask[~ignore])
+        return output_dict
+
+    @overrides
+    def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        output_dict['predicted_mask'] = output_dict['probs'].argmax(dim=1)
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
