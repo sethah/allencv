@@ -1,4 +1,5 @@
 import logging
+from overrides import overrides
 from typing import Dict, List
 
 import torch
@@ -9,7 +10,7 @@ from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average
 
-from allencv.modules.image_encoders import ImageEncoder
+from allencv.modules.image_encoders import ImageEncoder, ResnetEncoder, FPN
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.image_list import ImageList
@@ -19,6 +20,8 @@ from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import Balan
 from maskrcnn_benchmark.modeling.rpn.anchor_generator import AnchorGenerator
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.modeling.rpn.inference import RPNPostProcessor
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -49,10 +52,11 @@ class RPN(Model):
         # this makes sure each batch has reasonable balance of foreground/background labels
         # it selects `batch_size_per_image` total boxes
         sampler = BalancedPositiveNegativeSampler(batch_size_per_image, positive_fraction)
+        # sampler = SamplerWrapper(sampler)
 
         # matcher decides if an anchor box is a foreground or background based on how much
         # it overlaps with the nearest target box
-        matcher = Matcher(match_thresh_high, match_thresh_low, allow_low_quality_matches=False)
+        matcher = Matcher(match_thresh_high, match_thresh_low, allow_low_quality_matches=True)
 
         # the decoder will choose the highest scoring foreground anchor boxes and then perform
         # non-max suppression on those to eliminate duplicates. After that it will choose
@@ -107,14 +111,8 @@ class RPN(Model):
         image_list = ImageList(image, im_sizes)
         anchors: List[List[BoxList]] = self.anchor_generator(image_list, features)
 
-        # you get a list of proposal boxes for each image in the batch
-        proposals: List[BoxList] = self.decoder(anchors, objectness, rpn_box_regression)
-        proposal_scores = [b.get_field("objectness").unsqueeze(1) for b in proposals]
-        proposals: torch.Tensor = self._pad_tensors([p.bbox for p in proposals])
-        proposal_scores: torch.Tensor = self._pad_tensors(proposal_scores)[:, :, 0]
-
-        out = {'features': features, 'proposals': proposals,
-               'proposal_scores': proposal_scores}
+        out = {'features': features, 'objectness': objectness,
+               'rpn_box_regression': rpn_box_regression, 'anchors': anchors}
         if boxes is not None:
             box_list: List[BoxList] = self._padded_tensor_to_box_list(boxes, image_sizes)
             loss_objectness, loss_rpn_box_reg = self.loss_evaluator(
@@ -124,15 +122,27 @@ class RPN(Model):
             out["loss_rpn_box_reg"] = loss_rpn_box_reg
             self._loss_meters['rpn_cls_loss'](loss_objectness.item())
             self._loss_meters['rpn_reg_loss'](loss_rpn_box_reg.item())
-            out["loss"] = loss_objectness + loss_rpn_box_reg
+            out["loss"] = loss_objectness + 10*loss_rpn_box_reg
         return out
+
+    @overrides
+    def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        # you get a list of proposal boxes for each image in the batch
+        proposals: List[BoxList] = self.decoder(output_dict['anchors'], output_dict['objectness'],
+                                                output_dict['rpn_box_regression'])
+        proposal_scores = [b.get_field("objectness").unsqueeze(1) for b in proposals]
+        proposals: torch.Tensor = self._pad_tensors([p.bbox for p in proposals])
+        proposal_scores: torch.Tensor = self._pad_tensors(proposal_scores)[:, :, 0]
+        output_dict['proposals'] = proposals
+        output_dict['proposal_scores'] = proposal_scores
+        return output_dict
 
     def _pad_tensors(self, tensors: List[torch.Tensor]):
         max_proposals = max([x.shape[0] for x in tensors])
-        padded = torch.zeros(len(tensors), max_proposals, tensors[0].shape[1],
-                             device=tensors[0].device)
+        pad_shape = (len(tensors), max_proposals) + (() if tensors[0].dim() <= 1 else tensors[0].shape[1:])
+        padded = torch.zeros(pad_shape, device=tensors[0].device)
         for i, t in enumerate(tensors):
-            padded[i, :t.shape[0], :] = t
+            padded[i, :t.shape[0], ...] = t
         return padded
 
     def _padded_tensor_to_box_list(self,
@@ -153,5 +163,46 @@ class RPN(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {k: v.get_metric(reset) for k, v in self._loss_meters.items()}
         return metrics
+
+
+@Model.register("detectron_rpn")
+class PretrainedDetectronRPN(RPN):
+
+    def __init__(self,
+                 anchor_sizes: List[int] = [128, 256, 512],
+                 anchor_aspect_ratios: List[float] = [0.5, 1.0, 2.0],
+                 anchor_strides: List[int] = [8, 16, 32]):
+        backbone = ResnetEncoder('resnet50')
+        fpn = FPN(backbone, 256)
+        super(PretrainedDetectronRPN, self).__init__(fpn, anchor_strides=anchor_strides,
+                                                     anchor_aspect_ratios=anchor_aspect_ratios,
+                                                     anchor_sizes=anchor_sizes)
+        # TODO: don't rely on their silly config?
+        cfg.MODEL.WEIGHT = "catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x"
+        checkpointer = DetectronCheckpointer(cfg, None, save_dir=None)
+        f = checkpointer._load_file(cfg.MODEL.WEIGHT)
+        rpn_dict = {k.replace("rpn.head.", ""): v for k, v in f['model'].items() if
+                    k.startswith('rpn.head')}
+        self.load_state_dict(rpn_dict, strict=False)
+        backbone_dict = {k: v for k, v in f['model'].items() if k.startswith('layer')}
+        backbone_dict['stem.conv1.bias'] = f['model']['conv1.bias']
+        backbone_dict['stem.conv1.weight'] = f['model']['conv1.weight']
+        backbone_dict['stem.bn1.bias'] = f['model']['bn1.bias']
+        backbone_dict['stem.bn1.weight'] = f['model']['bn1.weight']
+        resnet_dict = {k: v for k, v in backbone_dict.items()}
+        backbone.load_state_dict(resnet_dict, strict=False)
+        self._load_fpn_detectron_state(fpn, f['model'])
+
+    def _load_fpn_detectron_state(self, fpn, state: Dict[str, torch.Tensor]):
+        for i in range(4):
+            prefix = f'fpn_inner{i + 1}'
+            state_dict = {'weight': state[f'{prefix}.weight'],
+                          'bias': state[f'{prefix}.bias']}
+            fpn._convert_layers[i].load_state_dict(state_dict)
+        for i in range(4):
+            prefix = f'fpn_layer{i + 1}'
+            state_dict = {'weight': state[f'{prefix}.weight'],
+                          'bias': state[f'{prefix}.bias']}
+            fpn._combine_layers[-(i + 1)].load_state_dict(state_dict)
 
 
