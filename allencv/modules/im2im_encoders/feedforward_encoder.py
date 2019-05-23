@@ -18,9 +18,10 @@ class StdConv(nn.Module):
                  activation: Activation = nn.ReLU(),
                  stride: int = 1,
                  padding: int = 1,
+                 dilation: int = 1,
                  dropout: float = 0.1):
         super(StdConv, self).__init__()
-        self.conv = nn.Conv2d(nin, nout, kernel_size, stride=stride, padding=padding)
+        self.conv = nn.Conv2d(nin, nout, kernel_size, stride=stride, padding=padding, dilation=dilation)
         self.bn = nn.BatchNorm2d(nout)
         self.drop = nn.Dropout(dropout)
         self.activation = activation
