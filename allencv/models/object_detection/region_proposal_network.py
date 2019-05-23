@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from allennlp.common import Params
+from allennlp.models.archival import load_archive
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average
@@ -163,6 +165,18 @@ class RPN(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {k: v.get_metric(reset) for k, v in self._loss_meters.items()}
         return metrics
+
+@RPN.register("pretrained")
+class PretrainedRPN(RPN):
+
+    @classmethod
+    def from_params(cls, params: Params):
+        model = load_archive(params.pop("archive_file")).model
+        requires_grad = params.pop("requires_grad")
+        for p in model.parameters():
+            p.requires_grad = requires_grad
+        return model
+
 
 
 @RPN.register("detectron_rpn")

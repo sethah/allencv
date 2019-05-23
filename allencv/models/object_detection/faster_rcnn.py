@@ -37,10 +37,10 @@ class FasterRCNN(Model):
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(FasterRCNN, self).__init__(vocab)
         self.rpn = rpn
-        loaded = torch.load("/home/sethah/ssd/allencv/models/tennis_rpn6/best.th")
-        self.rpn.load_state_dict(loaded)
-        for p in self.rpn.parameters():
-            p.requires_grade = False
+        # loaded = torch.load("/home/sethah/ssd/allencv/models/tennis_rpn6/best.th")
+        # self.rpn.load_state_dict(loaded)
+        # for p in self.rpn.parameters():
+        #     p.requires_grade = False
         self.pooler = Pooler(
             output_size=(pooler_resolution, pooler_resolution),
             scales=pooler_scales,
