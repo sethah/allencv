@@ -1,6 +1,6 @@
 local NUM_GPUS = 1;
 local NUM_THREADS = 1;
-local NUM_EPOCHS = 15;
+local NUM_EPOCHS = 30;
 
 local TRAIN_AUGMENTATION = [
             {
@@ -8,14 +8,9 @@ local TRAIN_AUGMENTATION = [
                 "height": 512,
                 "width": 512
             }, {
-                "type": "normalize",
-                "mean": [0.485, 0.456, 0.406],
-                "std": [0.229, 0.224, 0.225]
+                "type": "normalize"
             }, {
-                "type": "flip",
-                "p": 0.5
-            }, {
-                "type": "channel_shuffle",
+                "type": "horizontal_flip",
                 "p": 0.5
             }
         ];
@@ -25,9 +20,7 @@ local VALID_AUGMENTATION = [
                 "height": 512,
                 "width": 512
             }, {
-                "type": "normalize",
-                "mean": [0.485, 0.456, 0.406],
-                "std": [0.229, 0.224, 0.225]
+                "type": "normalize"
             }
         ];
 local TRAIN_READER = {
@@ -39,7 +32,7 @@ local TRAIN_READER = {
 local VALID_READER = {
         "type": "pascal",
         "augmentation": VALID_AUGMENTATION,
-        "image_set": "val",
+        "image_set": "val_small",
         "lazy": true
 };
 
@@ -53,16 +46,18 @@ local MODEL = {
     "backbone": {
         "type": "feature_pyramid",
         "backbone": {
-            "type": "pretrained_resnet",
-            "resnet_model": "resnet50",
+            "type": "resnet_encoder",
+            "model_str": "resnet101",
+            "pretrained": "true",
             "requires_grad": "true"
         },
         "output_channels": 256
     },
     "anchor_sizes": [64, 128, 256, 512],
-    "anchor_strides": [4, 8, 16, 32]
+    "anchor_strides": [4, 8, 16, 32],
 };
 
+local start_momentum = 0.9;
 {
   "dataset_reader": TRAIN_READER,
   "validation_dataset_reader": VALID_READER,
@@ -75,22 +70,29 @@ local MODEL = {
     "should_log_learning_rate": true,
     "cuda_device" : if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
     "optimizer": {
-      "type": "adam",
-      "lr": 1e-3,
+      "type": "sgd",
+      "lr": 1e-2,
+      "momentum": start_momentum,
       "parameter_groups": [
-      [["^backbone\\._backbone\\.stages\\.0\\."], {"initial_lr": 0.00001}],
-      [["^backbone\\._backbone\\.stages\\.1\\."], {"initial_lr": 0.0001}],
-      [["^backbone\\._backbone\\.stages\\.2\\."], {"initial_lr": 0.0003}],
-      [["^backbone\\._backbone\\.stages\\.3\\."], {"initial_lr": 0.0005}],
-      [["(^backbone\\._convert)|(^backbone\\._combine)|(^conv)|(^cls_logits)|(^bbox_pred)"], {"initial_lr": 0.001}],
+      [["^backbone\\._backbone\\.stages\\.0\\."], {"initial_lr": 1e-3, "momentum": start_momentum}],
+      [["^backbone\\._backbone\\.stages\\.1\\."], {"initial_lr": 1e-3, "momentum": start_momentum}],
+      [["^backbone\\._backbone\\.stages\\.2\\."], {"initial_lr": 1e-3, "momentum": start_momentum}],
+      [["^backbone\\._backbone\\.stages\\.3\\."], {"initial_lr": 1e-3, "momentum": start_momentum}],
+      [["(^backbone\\._convert)|(^backbone\\._combine)|(^conv)|(^cls_logits)|(^bbox_pred)"], {"initial_lr": 1e-3, "momentum": start_momentum}],
      ]
     },
     "learning_rate_scheduler": {
         "type": "slanted_triangular",
         "num_epochs": NUM_EPOCHS,
         "num_steps_per_epoch": 1250,
+        "discriminative_fine_tuning": true,
         "gradual_unfreezing": true,
-        "discriminative_fine_tuning": true
+        "cut_frac": 0.3
+    },
+    "momentum_scheduler": {
+        "type": "inverted_triangular",
+        "cool_down": 10,
+        "warm_up": 20,
     },
     "patience": 20
   }

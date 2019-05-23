@@ -1,16 +1,16 @@
 local NUM_GPUS = 1;
 local NUM_THREADS = 1;
-local NUM_EPOCHS = 15;
+local NUM_EPOCHS = 30;
 
+local image_height = 224;
+local image_width = 224;
 local TRAIN_AUGMENTATION = [
             {
                 "type": "resize",
-                "height": 512,
-                "width": 512
+                "height": image_height,
+                "width": image_width
             }, {
-                "type": "normalize",
-                "mean": [0.485, 0.456, 0.406],
-                "std": [0.229, 0.224, 0.225]
+                "type": "normalize"
             }, {
                 "type": "flip",
                 "p": 0.5
@@ -22,12 +22,10 @@ local TRAIN_AUGMENTATION = [
 local VALID_AUGMENTATION = [
             {
                 "type": "resize",
-                "height": 512,
-                "width": 512
+                "height": image_height,
+                "width": image_width
             }, {
-                "type": "normalize",
-                "mean": [0.485, 0.456, 0.406],
-                "std": [0.229, 0.224, 0.225]
+                "type": "normalize"
             }
         ];
 local TRAIN_READER = {
@@ -38,7 +36,7 @@ local TRAIN_READER = {
 };
 local VALID_READER = {
         "type": "paired_image",
-        "augmentation": TRAIN_AUGMENTATION,
+        "augmentation": VALID_AUGMENTATION,
         "mask_ext": ".png",
         "lazy": true
 };
@@ -46,9 +44,10 @@ local VALID_READER = {
 local BASE_ITERATOR = {
   "type": "basic",
   "max_instances_in_memory": 16384 * NUM_GPUS,
-  "batch_size": 8 * NUM_GPUS,
+  "batch_size": 16 * NUM_GPUS,
 };
 
+local initial_lr = 5e-3;
 {
   "dataset_reader": TRAIN_READER,
   "validation_dataset_reader": VALID_READER,
@@ -59,19 +58,21 @@ local BASE_ITERATOR = {
     "encoder": {
         "type": "feature_pyramid",
         "backbone": {
-            "type": "pretrained_resnet",
-            "resnet_model": "resnet34",
+            "type": "resnet_encoder",
+            "model_str": "resnet101",
+            "pretrained": true,
             "requires_grad": true
         },
-        "output_channels": 128
+        "output_channels": 256
     },
     "decoder": {
         "type": "basic",
         "input_scales": [1, 2, 4, 8],
-        "input_channels": 128,
-        "output_channels": 256
+        "input_channels": 256,
+        "output_channels": 128
     },
-    "num_classes": 21
+    "num_classes": 21,
+    "batch_size_per_image": 30000
   },
   "iterator": BASE_ITERATOR,
   "trainer": {
@@ -81,22 +82,24 @@ local BASE_ITERATOR = {
     "cuda_device" : if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
     "optimizer": {
       "type": "adam",
-      "lr": 1e-3,
+      "lr": initial_lr,
       "parameter_groups": [
-      [["^_encoder\\._backbone\\.stages\\.0"], {"initial_lr": 0.0005}],
-      [["^_encoder\\._backbone\\.stages\\.1"], {"initial_lr": 0.0005}],
-      [["^_encoder\\._backbone\\.stages\\.2"], {"initial_lr": 0.001}],
-      [["^_encoder\\._backbone\\.stages\\.3"], {"initial_lr": 0.001}],
-      [["(^_encoder\\._combine|^_decoder|^_encoder\\._convert|^upsampling|^final_conv)"], {"initial_lr": 0.001}],
+      [["(^_encoder\\._backbone\\.layer1)|(^_encoder\\._backbone\\.stem)"], {"initial_lr": initial_lr}],
+      [["^_encoder\\._backbone\\.layer2"], {"initial_lr": initial_lr}],
+      [["^_encoder\\._backbone\\.layer3"], {"initial_lr": initial_lr}],
+      [["^_encoder\\._backbone\\.layer4"], {"initial_lr": initial_lr}],
+      [["(^_encoder\\._combine|^_decoder|^_encoder\\._convert|^upsampling|^final_conv)"], {"initial_lr": initial_lr}],
      ]
     },
     "learning_rate_scheduler": {
         "type": "slanted_triangular",
         "num_epochs": NUM_EPOCHS,
-        "num_steps_per_epoch": 130,
+        "num_steps_per_epoch": 160,
         "gradual_unfreezing": true,
-        "discriminative_fine_tuning": true
+        "discriminative_fine_tuning": true,
+        "decay_factor": 0.25
     },
+    "summary_interval": 20,
     "patience": 20
   }
 }

@@ -1,6 +1,6 @@
 local NUM_GPUS = 1;
 local NUM_THREADS = 1;
-local NUM_EPOCHS = 15;
+local NUM_EPOCHS = 40;
 
 local TRAIN_AUGMENTATION = [
             {
@@ -13,9 +13,6 @@ local TRAIN_AUGMENTATION = [
                 "std": [0.229, 0.224, 0.225]
             }, {
                 "type": "flip",
-                "p": 0.5
-            }, {
-                "type": "channel_shuffle",
                 "p": 0.5
             }
         ];
@@ -73,7 +70,7 @@ local MODEL = {
         "feedforward": {
             "input_dim": 7*7*256,
             "num_layers": 2,
-            "hidden_dims": [1024, 512],
+            "hidden_dims": [1024, 1024],
             "activations": 'relu'
         }
     },
@@ -93,14 +90,13 @@ local MODEL = {
     "cuda_device" : if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
     "optimizer": {
       "type": "adam",
-      "lr": 1e-3,
+      "lr": 5e-2,
       "parameter_groups": [
-      [["^rpn\\.backbone\\._backbone\\.stages\\.0\\."], {"initial_lr": 0.000001}],
-      [["^rpn\\.backbone\\._backbone\\.stages\\.1\\."], {"initial_lr": 0.00001}],
-      [["^rpn\\.backbone\\._backbone\\.stages\\.2\\."], {"initial_lr": 0.00003}],
-      [["^rpn\\.backbone\\._backbone\\.stages\\.3\\."], {"initial_lr": 0.00005}],
-      [["(^rpn\\.backbone\\._convert)|(^rpn\\.backbone\\._combine)|(^rpn\\.conv)|(^rpn\\.cls_logits)|(^rpn\\.bbox_pred)"], {"initial_lr": 0.0001}],
-      [["(^cls_score)|(^bbox_pred)|(^feature_extractor)"], {"initial_lr": 0.001}],
+      [["^rpn\\.backbone\\._backbone\\.stages\\.0\\."], {"initial_lr": 0.00001}],
+      [["^rpn\\.backbone\\._backbone\\.stages\\.1\\."], {"initial_lr": 0.0001}],
+      [["^rpn\\.backbone\\._backbone\\.stages\\.2\\."], {"initial_lr": 0.0003}],
+      [["^rpn\\.backbone\\._backbone\\.stages\\.3\\."], {"initial_lr": 0.0005}],
+      [["(^cls_score)|(^bbox_pred)|(^feature_extractor)|(^rpn\\.backbone\\._convert)|(^rpn\\.backbone\\._combine)|(^rpn\\.conv)|(^rpn\\.cls_logits)|(^rpn\\.bbox_pred)"], {"initial_lr": 0.005}],
      ]
     },
     "learning_rate_scheduler": {
