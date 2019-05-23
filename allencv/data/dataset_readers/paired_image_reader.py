@@ -53,13 +53,17 @@ class PairedImageReader(ImageDatasetReader):
             mask_file = file_path / self._mask_dir / (img_name + mask_ext)
             mask = Image.open(mask_file)
             sample = img.convert('RGB')
-            img, masks, _ = self.augment(np.array(sample), masks=[np.array(mask)])
-            yield self.text_to_instance(img, masks[0])
+            yield self.text_to_instance(np.array(sample), mask)
 
     @overrides
     def text_to_instance(self, image: np.ndarray, mask: np.ndarray = None) -> Instance:
+        if mask is not None:
+            img, masks, _ = self.augment(image, masks=[np.array(mask)])
+            mask = masks[0]
+        else:
+            img, _, _ = self.augment(image)
         fields: Dict[str, Field] = {}
-        fields['image'] = ImageField(np.array(image).transpose(2, 0, 1), channels_first=False)
+        fields['image'] = ImageField(img.transpose(2, 0, 1), channels_first=False)
         if mask is not None:
             if len(mask.shape) == 2:
                 mask = mask[:, :, np.newaxis]

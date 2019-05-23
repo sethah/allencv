@@ -1,15 +1,11 @@
 import numpy as np
 from overrides import overrides
-from pathlib import Path
-from PIL import Image
 
 from typing import Dict, Iterable, List, Tuple
 import logging
 
-import torch
-
 from allencv.data.transforms.image_transform import ImageTransform
-from allencv.data.fields.image_field import ImageField, MaskField, BoundingBoxField
+from allencv.data.fields.image_field import ImageField, BoundingBoxField
 
 from allennlp.data.instance import Instance
 from allennlp.data.fields import LabelField, Field, ArrayField, ListField
@@ -47,7 +43,7 @@ class PascalReader(ImageDatasetReader):
         for i in range(len(base_dataset)):
             img, boxlist, idx = base_dataset[i]
             label_classes = boxlist.get_field("labels").numpy().tolist()
-            img, _, boxes = self.augment_(np.array(img), boxes=[b.numpy() for b in boxlist.bbox])
+            img, _, boxes = self.augment(np.array(img), boxes=[b.numpy() for b in boxlist.bbox])
             h, w, c = img.shape
             yield self.text_to_instance(img, (w, h), boxes, label_classes)
 
