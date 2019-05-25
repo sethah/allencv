@@ -10,6 +10,17 @@ class FlattenEncoder(Im2VecEncoder):
     """
     An ``Im2VecEncoder`` that simply flattens the input image and optionally passes it
     through a feedforward network.
+
+    Parameters
+    ----------
+    input_channels: ``int``
+        Number of channels in the input image.
+    input_height: ``int``
+        Height of input image.
+    input_width: ``int``
+        Width of input image.
+    feedforward: ``FeedForward``
+        Optional feedforward, dense network to pass the flattened vector through.
     """
 
     def __init__(self,

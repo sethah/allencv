@@ -21,6 +21,27 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 @DatasetReader.register("image_annotation")
 class ImageAnnotationReader(ImageDatasetReader):
     """
+    Read pairs of images and annotations. Expects annotations in the Pascal VOC format.
+
+    data_path
+    |-- images
+    |   |-- 00001.jpg
+    |   |-- 00002.jpg
+    |   |-- ...
+    |-- annotations
+    |   |-- 00001.json
+    |   |-- 00002.json
+    |   |-- ...
+
+    Parameters
+    ----------
+    augmentation: ``list``, required
+        List of image augmentations to apply to each pair.
+    image_dir: ``str``, optional, (default='images')
+        Name of the subdirectory which contains image inputs.
+    annotation_dir: ``str``, optional, (default='images')
+    annotation_ext: ``str``, optional
+        File extension for the annotation images.
     """
     def __init__(self,
                  augmentation: List[ImageTransform] = list(),

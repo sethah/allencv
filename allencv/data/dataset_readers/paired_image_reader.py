@@ -20,7 +20,17 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 @DatasetReader.register("paired_image")
 class PairedImageReader(ImageDatasetReader):
     """
-    Read pairs of images as input and label. TODO: add expected structure
+    Read pairs of images as input and label.
+
+    data_path
+    |-- images
+    |   |-- 00001.jpg
+    |   |-- 00002.jpg
+    |   |-- ...
+    |-- masks
+    |   |-- 00001.png
+    |   |-- 00002.png
+    |   |-- ...
 
     Parameters
     ----------
