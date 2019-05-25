@@ -3,7 +3,6 @@ python:
   - "3.6"
 before_install:
   - gcc --version
-  - git clone https://github.com/NVIDIA/apex && cd apex && python setup.py install --cpp_ext
 env:
   - CC=gcc-6
   - CXX=g++-6
@@ -11,6 +10,7 @@ install:
   - pip install -U pip
   - pip install --progress-bar off -r requirements.txt
 script:
+  - git clone https://github.com/NVIDIA/apex && cd apex && python setup.py install --cpp_ext
   - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
   - gcc --version
   - python -m pytest allencv/tests
