@@ -1,7 +1,18 @@
 # AllenCV
 
-A computer vision library proof-of-concept that mimicks the interfaces 
-in [AllenNLP](https://github.com/allenai/allennlp).
+A computer vision library built on top of [PyTorch](https://github.com/pytorch/pytorch) and 
+[AllenNLP](https://github.com/allenai/allennlp).
+
+## Installation
+
+```
+pip install allencv
+```
+
+Currently, the project requires the [maskrcnn_benchmark](https://github.com/facebookresearch/maskrcnn-benchmark) library, which must be installed manually
+by following the instructions [here](https://github.com/facebookresearch/maskrcnn-benchmark/blob/master/INSTALL.md). 
+This dependence may be removed in the future.
+
 
 ## Test it out
 
@@ -43,7 +54,7 @@ allennlp train $ALLENCV_DIR/training_config/image_classifier.jsonnet \
 -s path/to/serialization/dir
 ```
 
-### Classification
+### Semantic Segmentation
 
 
 Download and split PascalVOC data
