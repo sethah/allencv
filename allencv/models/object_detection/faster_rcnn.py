@@ -1,5 +1,8 @@
 import logging
+import json
+import numpy as np
 from overrides import overrides
+from PIL import Image
 from typing import Dict, List, Tuple
 
 import torch
@@ -7,7 +10,11 @@ import torch.nn as nn
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
+from allennlp.predictors import Predictor
 from allennlp.training.metrics import Average
+from allennlp.common.util import JsonDict, sanitize
+from allennlp.data import DatasetReader, Instance
+
 from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import \
     BalancedPositiveNegativeSampler
 from maskrcnn_benchmark.modeling.box_coder import BoxCoder
@@ -115,7 +122,7 @@ class FasterRCNN(Model):
         box_regression = self.bbox_pred(region_features)
         out = {'class_logits': class_logits,
                'box_regression': box_regression,
-               'proposals': proposals}
+               'proposals': sampled_proposals}
 
         if boxes is not None:
             rpn_classifier_loss = rpn_out['loss_objectness']
@@ -140,6 +147,7 @@ class FasterRCNN(Model):
         output_dict['scores'] = object_utils.pad_tensors([d.get_field("scores") for d in decoded])
         output_dict['labels'] = object_utils.pad_tensors([d.get_field("labels") for d in decoded])
         output_dict['decoded'] = object_utils.pad_tensors([d.bbox for d in decoded])
+        output_dict.pop("proposals")
         # split_logits = class_logits.split([len(p) for p in sampled_proposals])
         # # [(13, 4), (17, 4)] -> (2, 17, 4)
         # split_logits = self.rpn._pad_tensors(split_logits)
@@ -150,3 +158,25 @@ class FasterRCNN(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {k: v.get_metric(reset) for k, v in self._loss_meters.items()}
         return metrics
+
+
+@Predictor.register("faster_rcnn")
+class FasterRCNNPredictor(Predictor):
+
+    def __init__(self,
+                 model: Model,
+                 dataset_reader: DatasetReader) -> None:
+        super().__init__(model, dataset_reader)
+
+    def predict(self, image_path: str) -> JsonDict:
+        return self.predict_json({"image_path": image_path})
+
+    @overrides
+    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
+        """
+        Expects JSON that looks like ``{"sentence": "..."}``.
+        Runs the underlying model, and adds the ``"words"`` to the output.
+        """
+        image_path = json_dict["image_path"]
+        img = Image.open(image_path).convert('RGB')
+        return self._dataset_reader.text_to_instance(np.array(img))
