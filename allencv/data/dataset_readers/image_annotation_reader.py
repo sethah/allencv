@@ -44,12 +44,14 @@ class ImageAnnotationReader(ImageDatasetReader):
             annotation_file = file_path / self._annotation_dir / (img_name + annotation_ext)
             if not annotation_file.exists():
                 label_boxes = None
+                label_classes = None
             else:
                 with open(annotation_file, 'r') as f:
                     annotation = json.load(f)
                 label_boxes: List[List[float]] = self._parse_annotation(annotation)
+                label_classes = [1] * len(label_boxes)  # TODO: fix this to read actual classes
             sample = img.convert('RGB')
-            yield self.text_to_instance(np.array(sample), label_boxes, [1] * len(label_boxes))
+            yield self.text_to_instance(np.array(sample), label_boxes, label_classes)
 
     def _parse_annotation(self, annotation) -> List[List[float]]:
         boxes = []

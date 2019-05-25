@@ -65,11 +65,16 @@ class FPN(ImageEncoder):
 
         return list(reversed(combined_images))
 
+    def _get_test_outputs(self, height: int = 128, width: int = 128) -> Sequence[torch.Tensor]:
+        params = list(self.parameters())
+        im = torch.randn(1, self.get_input_channels(), height, width).to(params[0].device)
+        return self.forward(im)
+
     def get_input_channels(self) -> int:
         return self._backbone.get_input_channels()
 
     def get_output_channels(self) -> Sequence[int]:
-        return [self._output_channels] * len(self._backbone.get_output_channels())
+        return [x.shape[1] for x in self._get_test_outputs()]
 
     def get_output_scales(self) -> Sequence[int]:
         return self._backbone.get_output_scales()

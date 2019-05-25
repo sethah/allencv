@@ -21,7 +21,9 @@ class _ImageTransformWrapper(object):
 
 class BGRNormalize(ImageOnlyTransform):
 
-    def __init__(self, mean=[102.9801, 115.9465, 122.7717], std=[1., 1., 1.],
+    def __init__(self,
+                 mean=[102.9801, 115.9465, 122.7717],
+                 std=[1., 1., 1.],
                  max_pixel_value=255.0,
                  always_apply=False, p=1.0):
         super(BGRNormalize, self).__init__(always_apply, p)

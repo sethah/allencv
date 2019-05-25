@@ -40,10 +40,17 @@ class RPN(Model):
                  positive_fraction: float = 0.5,
                  match_thresh_low: float = 0.3,
                  match_thresh_high: float = 0.7,
-                 anchor_sizes: List[int] = [128, 256, 512],
-                 anchor_aspect_ratios: List[float] = [0.5, 1.0, 2.0],
-                 anchor_strides: List[int] = [8, 16, 32],
+                 anchor_sizes: List[int] = (128, 256, 512),
+                 anchor_aspect_ratios: List[float] = (0.5, 1.0, 2.0),
+                 anchor_strides: List[int] = (8, 16, 32),
                  batch_size_per_image: int = 256,
+                 pre_nms_top_n: int = 6000,
+                 post_nms_top_n: int = 300,
+                 nms_thresh: int = 0.7,
+                 min_size: int = 0,
+                 fpn_post_nms_top_n: int = 1000,
+                 fpn_post_nms_per_batch: int = True,
+                 allow_low_quality_matches: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RPN, self).__init__(None)
 
@@ -55,22 +62,22 @@ class RPN(Model):
         # this makes sure each batch has reasonable balance of foreground/background labels
         # it selects `batch_size_per_image` total boxes
         sampler = BalancedPositiveNegativeSampler(batch_size_per_image, positive_fraction)
-        # sampler = SamplerWrapper(sampler)
 
         # matcher decides if an anchor box is a foreground or background based on how much
         # it overlaps with the nearest target box
-        matcher = Matcher(match_thresh_high, match_thresh_low, allow_low_quality_matches=True)
+        matcher = Matcher(match_thresh_high, match_thresh_low,
+                          allow_low_quality_matches=allow_low_quality_matches)
 
         # the decoder will choose the highest scoring foreground anchor boxes and then perform
         # non-max suppression on those to eliminate duplicates. After that it will choose
         # a further subset of the ones that survived nms as proposals from the RPN
-        self.decoder = RPNPostProcessor(pre_nms_top_n=6000,
-                                        post_nms_top_n=300,
-                                        nms_thresh=0.7,
-                                        min_size=0,
+        self.decoder = RPNPostProcessor(pre_nms_top_n=pre_nms_top_n,
+                                        post_nms_top_n=post_nms_top_n,
+                                        nms_thresh=nms_thresh,
+                                        min_size=min_size,
                                         box_coder=box_coder,
-                                        fpn_post_nms_top_n=2000,
-                                        fpn_post_nms_per_batch=True)
+                                        fpn_post_nms_top_n=fpn_post_nms_top_n,
+                                        fpn_post_nms_per_batch=fpn_post_nms_per_batch)
         self.backbone = backbone
         self.loss_evaluator = RPNLossComputation(matcher,
                                                  sampler,
@@ -163,9 +170,9 @@ class PretrainedRPN(RPN):
 class PretrainedDetectronRPN(RPN):
 
     def __init__(self,
-                 anchor_sizes: List[int] = [128, 256, 512],
-                 anchor_aspect_ratios: List[float] = [0.5, 1.0, 2.0],
-                 anchor_strides: List[int] = [8, 16, 32],
+                 anchor_sizes: List[int] = (128, 256, 512),
+                 anchor_aspect_ratios: List[float] = (0.5, 1.0, 2.0),
+                 anchor_strides: List[int] = (8, 16, 32),
                  batch_size_per_image: int = 256):
         backbone = ResnetEncoder('resnet50')
         fpn = FPN(backbone, 256)

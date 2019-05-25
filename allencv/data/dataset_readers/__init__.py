@@ -1,2 +1,3 @@
 from allencv.data.dataset_readers.paired_image_reader import PairedImageReader
 from allencv.data.dataset_readers.image_classification_directory import ImageClassificationDirectory
+from allencv.data.dataset_readers.image_annotation_reader import ImageAnnotationReader

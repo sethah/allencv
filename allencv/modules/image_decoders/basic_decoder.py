@@ -1,31 +1,11 @@
 import numpy as np
-from typing import Dict, List, Sequence
+from typing import List, Sequence
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
-from allencv.modules.im2im_encoders.feedforward_encoder import StdConv
+from allencv.nn import Upsample
 from allencv.modules.image_decoders import ImageDecoder
-
-
-class Upsample(nn.Module):
-
-    def __init__(self, in_channels: int, out_channels: int, num_stages: int, scale_factor: int = 2):
-        super(Upsample, self).__init__()
-        self.scale_factor = scale_factor
-        self.convs = [StdConv(in_channels, out_channels, padding=1)] + \
-                [StdConv(out_channels, out_channels, padding=1) for _ in range(num_stages - 1)]
-        self.convs = nn.ModuleList(self.convs)
-        self.num_stages = num_stages
-
-    def forward(self, inputs: torch.Tensor):
-        out = inputs
-        for conv in self.convs:
-            out = conv.forward(out)
-            if self.num_stages != 0:
-                out = F.interpolate(out, scale_factor=self.scale_factor)
-        return out
 
 
 @ImageDecoder.register("basic")

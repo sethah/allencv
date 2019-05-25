@@ -9,25 +9,7 @@ from allencv.modules.im2im_encoders.im2im_encoder import Im2ImEncoder
 from allennlp.nn import Activation
 
 
-class StdConv(nn.Module):
 
-    def __init__(self,
-                 nin: int,
-                 nout: int,
-                 kernel_size: int = 3,
-                 activation: Activation = nn.ReLU(),
-                 stride: int = 1,
-                 padding: int = 1,
-                 dilation: int = 1,
-                 dropout: float = 0.1):
-        super(StdConv, self).__init__()
-        self.conv = nn.Conv2d(nin, nout, kernel_size, stride=stride, padding=padding, dilation=dilation)
-        self.bn = nn.BatchNorm2d(nout)
-        self.drop = nn.Dropout(dropout)
-        self.activation = activation
-
-    def forward(self, x):
-        return self.drop(self.bn(self.activation(self.conv(x))))
 
 
 @Im2ImEncoder.register("feedforward")

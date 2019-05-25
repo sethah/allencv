@@ -1,1 +1,1 @@
-from allencv.data.fields.image_field import ImageField, MaskField
+from allencv.data.fields.image_field import ImageField, MaskField, BoundingBoxField
