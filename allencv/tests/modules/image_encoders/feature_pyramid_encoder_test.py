@@ -15,7 +15,7 @@ class TestFeaturePyramid(AllenNlpTestCase):
         fpn = FPN(backbone, output_channels)
         assert fpn.get_output_scales() == [4, 8, 16, 32]
         assert fpn.get_input_channels() == backbone.get_input_channels()
-        assert fpn.get_output_channels() == [output_channels] * 4
+        assert fpn.get_output_channels() == [output_channels] * 5
         encoded = fpn.forward(image)
         assert len(encoded) == 5
         assert [im.shape[-2] for im in encoded] == [56, 28, 14, 7, 4]
