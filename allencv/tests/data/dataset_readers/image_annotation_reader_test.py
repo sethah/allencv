@@ -9,7 +9,7 @@ from allennlp.data.fields import ListField
 class TestImageAnnotationReader(AllenCvTestCase):
 
     def test_reader_output(self):
-        reader = ImageAnnotationReader(augmentation=[])
+        reader = ImageAnnotationReader()
         instances = reader.read(self.FIXTURES_ROOT / "data" / "image_annotation")
         assert(isinstance(instances, list))
         assert len(instances) == 1

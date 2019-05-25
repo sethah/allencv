@@ -31,8 +31,8 @@ class PascalReader(ImageDatasetReader):
         Whether or not instances can be read lazily.
     """
     def __init__(self,
-                 augmentation: List[ImageTransform],
-                 image_set: str,
+                 augmentation: List[ImageTransform] = None,
+                 image_set: str = 'train',
                  lazy: bool = False) -> None:
         super(PascalReader, self).__init__(augmentation)
         self.lazy = lazy

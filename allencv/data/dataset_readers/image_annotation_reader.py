@@ -44,7 +44,7 @@ class ImageAnnotationReader(ImageDatasetReader):
         File extension for the annotation images.
     """
     def __init__(self,
-                 augmentation: List[ImageTransform] = list(),
+                 augmentation: List[ImageTransform] = None,
                  image_dir: str = "images",
                  annotation_dir: str = "annotations",
                  annotation_ext: str = ".json",

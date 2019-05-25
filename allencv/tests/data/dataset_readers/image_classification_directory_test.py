@@ -9,7 +9,7 @@ from allennlp.data.fields import LabelField
 class TestImageClassificationDirectoryReader(AllenCvTestCase):
 
     def test_reader_output(self):
-        reader = ImageClassificationDirectory([])
+        reader = ImageClassificationDirectory()
         instances = reader.read(self.FIXTURES_ROOT / "data" / "image_classification")
         assert(isinstance(instances, list))
         assert len(instances) == 2

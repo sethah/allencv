@@ -43,7 +43,7 @@ class PairedImageReader(ImageDatasetReader):
         File extension for the mask images.
     """
     def __init__(self,
-                 augmentation: List[ImageTransform] = list(),
+                 augmentation: List[ImageTransform] = None,
                  image_dir: str = "images",
                  mask_dir: str = "masks",
                  mask_ext: str = None,

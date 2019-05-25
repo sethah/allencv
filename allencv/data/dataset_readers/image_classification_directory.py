@@ -34,7 +34,7 @@ class ImageClassificationDirectory(ImageDatasetReader):
         Whether or not instances can be read lazily.
     """
     def __init__(self,
-                 augmentation: List[ImageTransform],
+                 augmentation: List[ImageTransform] = None,
                  skip_label_indexing: bool = False,
                  lazy: bool = False) -> None:
         super(ImageClassificationDirectory, self).__init__(augmentation)

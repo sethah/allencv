@@ -20,11 +20,15 @@ class ImageDatasetReader(DatasetReader):
     """
 
     def __init__(self,
-                 augmentation: List[ImageTransform],
+                 augmentation: List[ImageTransform] = None,
                  bbox_format: str = 'pascal_voc',
                  lazy: bool = False):
         super(ImageDatasetReader, self).__init__(lazy)
-        self.augmentation = aug.Compose([a.transform for a in augmentation],
+        if augmentation is None:
+            _transforms = []
+        else:
+            _transforms = [a.transform for a in augmentation]
+        self.augmentation = aug.Compose(_transforms,
                                         bbox_params={'format': bbox_format,
                                                      'label_fields': ['category_id']})
 
