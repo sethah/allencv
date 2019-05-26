@@ -11,9 +11,9 @@ install:
   - pip install -U pip
   - pip install --progress-bar off -r requirements.txt
 script:
-  - git clone https://github.com/NVIDIA/apex && python apex/setup.py install --cpp_ext
+  - git clone https://github.com/NVIDIA/apex && cd apex && python setup.py install --cpp_ext && cd ..
   - gcc --version
-  - pytest
+  - pytest allencv
 sudo: required
 addons:
   apt:
