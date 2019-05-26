@@ -20,6 +20,13 @@ twine>=1.11.0
 # Testing
 pytest>=3.5.0
 
+# maskrcnn-benchmark
+ninja
+yacs
+cython
+tqdm
+opencv-python
+
 # external requirements
 click
 Sphinx
