@@ -4,12 +4,10 @@ from typing import Sequence, Union
 import torch
 import torch.nn as nn
 
-from allencv.modules.im2im_encoders.im2im_encoder import Im2ImEncoder
-
 from allennlp.nn import Activation
 
-
-
+from allencv.nn import StdConv
+from allencv.modules.im2im_encoders.im2im_encoder import Im2ImEncoder
 
 
 @Im2ImEncoder.register("feedforward")
@@ -44,7 +42,8 @@ class FeedforwardEncoder(Im2ImEncoder):
         if not isinstance(hidden_channels, list):
             hidden_channels = [hidden_channels] * num_layers
         if not isinstance(activations, list):
-            activations = [nn.ReLU()] * num_layers
+            activations = [activations] * num_layers
+        activations = [Activation.by_name(a)() for a in activations]
         if not isinstance(dropout, list):
             dropout = [dropout] * num_layers
         if not isinstance(kernel_sizes, list):
@@ -55,7 +54,8 @@ class FeedforwardEncoder(Im2ImEncoder):
         conv_layers = []
         for i, (layer_input_channel, layer_output_channel) in enumerate(zip(input_channels, hidden_channels)):
             conv_layers.append(StdConv(layer_input_channel, layer_output_channel,
-                                       kernel_size=kernel_sizes[i], activation=activations[i],
+                                       kernel_size=kernel_sizes[i],
+                                       activation=activations[i],
                                        dropout=dropout[i]))
             conv_layers.append(StdConv(layer_output_channel, layer_output_channel, stride=2,
                                        kernel_size=kernel_sizes[i],

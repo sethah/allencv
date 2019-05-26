@@ -1,3 +1,4 @@
+from overrides import overrides
 from typing import Dict
 
 import torch
@@ -88,6 +89,11 @@ class BasicImageClassifier(Model):
             output_dict["loss"] = loss
             self._accuracy(logits, label)
 
+        return output_dict
+
+    @overrides
+    def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        output_dict['prediction'] = torch.argmax(output_dict['probs'], dim=1)
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

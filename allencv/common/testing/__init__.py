@@ -1,1 +1,1 @@
-from allencv.common.testing.test_case import AllenCvTestCase
+from allencv.common.testing.test_case import AllenCvTestCase, ModelTestCase

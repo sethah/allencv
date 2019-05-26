@@ -84,7 +84,7 @@ class RPN(Model):
                                                  box_coder,
                                                  generate_rpn_labels)
         self.anchor_generator = AnchorGenerator(anchor_sizes, anchor_aspect_ratios, anchor_strides,
-                                                straddle_thresh=0)
+                                                straddle_thresh=1000)
         self.num_anchors = self.anchor_generator.num_anchors_per_location()[0]
 
         # TODO: backbone must produce maps with all same number of channels
@@ -120,9 +120,13 @@ class RPN(Model):
         im_sizes = [(x[1].item(), x[0].item()) for x in image_sizes]
         image_list = ImageList(image, im_sizes)
         anchors: List[List[BoxList]] = self.anchor_generator(image_list, features)
+        anchors_bbox = []
+        for anchor_bbox in anchors:
+            anchors_bbox.append([b.bbox for b in anchor_bbox])
 
         out = {'features': features, 'objectness': objectness,
-               'rpn_box_regression': rpn_box_regression, 'anchors': anchors}
+               'rpn_box_regression': rpn_box_regression, 'anchors_bbox': anchors_bbox,
+               'anchors_sizes': im_sizes}
         if boxes is not None:
             box_list: List[BoxList] = object_utils.padded_tensor_to_box_list(boxes, image_sizes)
             loss_objectness, loss_rpn_box_reg = self.loss_evaluator(
@@ -138,7 +142,10 @@ class RPN(Model):
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # you get a list of proposal boxes for each image in the batch
-        proposals: List[BoxList] = self.decoder(output_dict['anchors'], output_dict['objectness'],
+        anchors = []
+        for i, anchor_bbox in enumerate(output_dict['anchors_bbox']):
+            anchors.append([BoxList(bbox, output_dict['anchors_sizes'][i]) for bbox in anchor_bbox])
+        proposals: List[BoxList] = self.decoder(anchors, output_dict['objectness'],
                                                 output_dict['rpn_box_regression'])
         proposal_scores = [b.get_field("objectness").unsqueeze(1) for b in proposals]
         proposals: torch.Tensor = object_utils.pad_tensors([p.bbox for p in proposals])
@@ -152,7 +159,7 @@ class RPN(Model):
         return metrics
 
 
-@RPN.register("pretrained")
+# @RPN.register("pretrained")
 class PretrainedRPN(RPN):
 
     @classmethod
@@ -165,8 +172,8 @@ class PretrainedRPN(RPN):
 
 
 
-@RPN.register("detectron_rpn")
-@Model.register("detectron_rpn")
+# @RPN.register("detectron_rpn")
+# @Model.register("detectron_rpn")
 class PretrainedDetectronRPN(RPN):
 
     def __init__(self,

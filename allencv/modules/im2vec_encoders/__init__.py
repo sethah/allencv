@@ -1,1 +1,2 @@
 from allencv.modules.im2vec_encoders.im2vec_encoder import Im2VecEncoder
+from allencv.modules.im2vec_encoders.flatten_encoder import FlattenEncoder

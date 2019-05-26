@@ -7,6 +7,7 @@ import tempfile
 from unittest import TestCase
 
 from allennlp.common.checks import log_pytorch_version_info
+from allennlp.common.testing import ModelTestCase as AllenNLPModelTestCase
 
 TEST_DIR = tempfile.mkdtemp(prefix="allencv_tests")
 
@@ -39,3 +40,10 @@ class AllenCvTestCase(TestCase):  # pylint: disable=too-many-public-methods
 
     def tearDown(self):
         shutil.rmtree(self.TEST_DIR)
+
+
+class ModelTestCase(AllenCvTestCase, AllenNLPModelTestCase):
+
+    def foo(self):
+        return None
+

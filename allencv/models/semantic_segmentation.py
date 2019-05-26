@@ -16,6 +16,7 @@ from allencv.modules.image_decoders import ImageDecoder
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+
 @Model.register("semantic_segmentation")
 class SemanticSegmentationModel(Model):
     """
@@ -82,7 +83,11 @@ class SemanticSegmentationModel(Model):
             sampled_neg_inds = torch.nonzero(torch.cat(pos_idxs, dim=0)).squeeze(1)
 
             sampled_inds = torch.cat([sampled_pos_inds, sampled_neg_inds], dim=0)
-            loss = self._loss(flattened_logits[sampled_inds, :], flattened_mask[sampled_inds])
+            # TODO: don't sample when evaluating
+            if self.training:
+                loss = self._loss(flattened_logits[sampled_inds, :], flattened_mask[sampled_inds])
+            else:
+                loss = self._loss(flattened_logits[~ignore, :], flattened_mask[~ignore])
             output_dict["loss"] = loss
             self._accuracy(flattened_logits[~ignore, :], flattened_mask[~ignore])
         return output_dict
