@@ -13,7 +13,7 @@ install:
   - pip install --progress-bar off -r requirements.txt
 script:
   - git clone https://github.com/NVIDIA/apex && cd apex && python setup.py install --cpp_ext && cd ..
-  - git clone https://github.com/facebookresearch/maskrcnn-benchmark.git && cd maskrcnn-benchmakr && python setup.py build develop && cd ..
+  - git clone https://github.com/facebookresearch/maskrcnn-benchmark.git && cd maskrcnn-benchmark && python setup.py build develop && cd ..
   - gcc --version
   - pytest allencv
 sudo: required
