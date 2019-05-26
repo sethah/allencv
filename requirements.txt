@@ -25,7 +25,6 @@ ninja
 yacs
 cython
 tqdm
-opencv-python
 
 # external requirements
 click
