@@ -6,6 +6,7 @@ before_install:
 env:
   - CC=gcc-6
   - CXX=g++-6
+  - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
 install:
   - pip install -U pip
   - pip install --progress-bar off -r requirements.txt
