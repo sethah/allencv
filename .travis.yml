@@ -12,7 +12,6 @@ install:
   - pip install --progress-bar off -r requirements.txt
 script:
   - git clone https://github.com/NVIDIA/apex && python apex/setup.py install --cpp_ext
-  - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-6 /usr/bin/gcc
   - gcc --version
   - pytest
 sudo: required

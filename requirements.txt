@@ -17,6 +17,9 @@ git+https://github.com/python-pillow/Pillow
 # Pypi uploads
 twine>=1.11.0
 
+# Testing
+pytest>=3.5.0
+
 # external requirements
 click
 Sphinx
