@@ -16,7 +16,7 @@ script:
   - git clone https://github.com/NVIDIA/apex && cd apex && python setup.py install --cpp_ext && cd ..
   - git clone https://github.com/facebookresearch/maskrcnn-benchmark.git && cd maskrcnn-benchmark && python setup.py build develop && cd ..
   - gcc --version
-  - pytest allencv
+  - pytest allencv --cov=./allencv/
 sudo: required
 addons:
   apt:
