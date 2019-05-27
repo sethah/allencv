@@ -1,5 +1,7 @@
 # AllenCV
 
+[![Build Status](https://travis-ci.com/sethah/allencv.svg?branch=master)](https://travis-ci.com/sethah/allencv)
+
 A computer vision library built on top of [PyTorch](https://github.com/pytorch/pytorch) and 
 [AllenNLP](https://github.com/allenai/allennlp).
 
