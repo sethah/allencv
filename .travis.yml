@@ -25,4 +25,6 @@ addons:
     packages:
     - gcc-6
     - g++-6
+after_success:
+  - codecov
 
