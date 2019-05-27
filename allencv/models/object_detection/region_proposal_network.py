@@ -51,6 +51,7 @@ class RPN(Model):
                  fpn_post_nms_top_n: int = 1000,
                  fpn_post_nms_per_batch: int = True,
                  allow_low_quality_matches: bool = True,
+                 straddle_thresh: int = 0,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RPN, self).__init__(None)
 
@@ -84,7 +85,7 @@ class RPN(Model):
                                                  box_coder,
                                                  generate_rpn_labels)
         self.anchor_generator = AnchorGenerator(anchor_sizes, anchor_aspect_ratios, anchor_strides,
-                                                straddle_thresh=1000)
+                                                straddle_thresh=straddle_thresh)
         self.num_anchors = self.anchor_generator.num_anchors_per_location()[0]
 
         # TODO: backbone must produce maps with all same number of channels
@@ -188,6 +189,7 @@ class PretrainedDetectronRPN(RPN):
                                                      anchor_sizes=anchor_sizes,
                                                      batch_size_per_image=batch_size_per_image)
         # TODO: don't rely on their silly config?
+        # TODO: MRCNN has "stridein1x1" param which is unsettable, and differs from torchvision
         cfg.MODEL.WEIGHT = "catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x"
         checkpointer = DetectronCheckpointer(cfg, None, save_dir=None)
         f = checkpointer._load_file(cfg.MODEL.WEIGHT)
