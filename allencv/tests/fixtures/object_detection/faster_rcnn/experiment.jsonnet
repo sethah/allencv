@@ -20,13 +20,7 @@ local BASE_ITERATOR = {
   "batch_size": 1,
 };
 
-{
-  "dataset_reader": TRAIN_READER,
-  "validation_dataset_reader": TRAIN_READER,
-  "train_data_path": "allencv/tests/fixtures/data/image_annotation",
-  "validation_data_path": "allencv/tests/fixtures/data/image_annotation",
-  "model": {
-    "type": "rpn",
+local RPN = {
     "backbone": {
         "type": "feature_pyramid",
         "backbone": {
@@ -43,6 +37,29 @@ local BASE_ITERATOR = {
     "match_thresh_low": 0.0,
     "batch_size_per_image": 10000000,
     "straddle_thresh": 2000
+};
+
+{
+  "dataset_reader": TRAIN_READER,
+  "validation_dataset_reader": TRAIN_READER,
+  "train_data_path": "allencv/tests/fixtures/data/image_annotation",
+  "validation_data_path": "allencv/tests/fixtures/data/image_annotation",
+  "model": {
+    "type": "faster_rcnn",
+    "rpn": RPN,
+    "roi_feature_extractor": {
+        "type": "flatten",
+        "input_channels": 256,
+        "input_height": 7,
+        "input_width": 7,
+        "feedforward": {
+            "input_dim": 7*7*256,
+            "num_layers": 2,
+            "hidden_dims": [256, 256],
+            "activations": 'relu'
+        }
+    },
+    "num_labels": 4
   },
   "iterator": BASE_ITERATOR,
   "trainer": {

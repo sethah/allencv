@@ -10,7 +10,7 @@ class TestFeaturePyramid(AllenNlpTestCase):
 
     def test_encoder_shapes(self):
         image = torch.randn(1, 3, 224, 224)
-        backbone = ResnetEncoder(model_str='resnet101')
+        backbone = ResnetEncoder(resnet_model='resnet101')
         output_channels = 128
         fpn = FPN(backbone, output_channels)
         assert fpn.get_output_scales() == [4, 8, 16, 32]

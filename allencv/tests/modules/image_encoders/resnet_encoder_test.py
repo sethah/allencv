@@ -10,7 +10,7 @@ class TestResnetEncoder(AllenNlpTestCase):
 
     def test_encoder_shapes(self):
         image = torch.randn(1, 3, 224, 224)
-        encoder = ResnetEncoder(model_str='resnet101')
+        encoder = ResnetEncoder(resnet_model='resnet101')
         assert encoder.get_output_scales() == [4, 8, 16, 32]
         assert encoder.get_input_channels() == 3
         assert encoder.get_output_channels() == [256, 512, 1024, 2048]

@@ -1,7 +1,7 @@
 {"filename": "00001.jpg", "size": 50108,
   "regions": [
-    {"shape_attributes": {"name": "rect", "x": 195, "y": 66, "width": 40, "height": 47}, "region_attributes": {}},
-    {"shape_attributes": {"name": "rect", "x": 335, "y": 230, "width": 55, "height": 104}, "region_attributes": {}},
-    {"shape_attributes": {"name": "rect", "x": 0, "y": 0, "width": 500, "height": 500}, "region_attributes": {}}
+    {"shape_attributes": {"name": "car", "x": 195, "y": 66, "width": 40, "height": 47}, "region_attributes": {}},
+    {"shape_attributes": {"name": "bird", "x": 335, "y": 230, "width": 55, "height": 104}, "region_attributes": {}},
+    {"shape_attributes": {"name": "person", "x": 0, "y": 0, "width": 500, "height": 500}, "region_attributes": {}}
     ],
   "file_attributes": {}}

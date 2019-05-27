@@ -1,8 +1,8 @@
 from collections import OrderedDict
-from typing import Sequence
+from typing import Sequence, Union
 
 import torch
-from torchvision.models.resnet import resnet34, resnet50, resnet18, resnet101, resnet152
+from torchvision.models.resnet import conv1x1, conv3x3, resnet34, resnet50, resnet18, resnet101, resnet152, ResNet
 
 from allencv.modules.image_encoders import ImageEncoder
 import torch.nn as nn
@@ -24,13 +24,14 @@ class ResnetEncoder(ImageEncoder):
         """
 
     def __init__(self,
-                 model_str: str,
+                 resnet_model: Union[ResNet, str],
                  pretrained: bool = False,
                  requires_grad: bool = True) -> None:
         super(ResnetEncoder, self).__init__()
-        resnet_model = ResnetEncoder._pretrained_from_string(model_str, pretrained, requires_grad)
+        if isinstance(resnet_model, str):
+            resnet_model = ResnetEncoder._pretrained_from_string(resnet_model, pretrained, requires_grad)
         self._input_channels = 3
-        # TODO: frozen batchnorm? no conv bias?
+        # TODO: frozen batchnorm?
         self.stem = nn.Sequential(OrderedDict(
                 [
                     ('conv1', resnet_model.conv1),
@@ -89,3 +90,42 @@ class ResnetEncoder(ImageEncoder):
         for param in model.parameters():
             param.requires_grad = requires_grad
         return model
+
+
+class Bottleneck(nn.Module):
+    expansion = 4
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super(Bottleneck, self).__init__()
+        self.conv1 = conv1x1(inplanes, planes, stride)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.conv3 = conv1x1(planes, planes * self.expansion)
+        self.bn3 = nn.BatchNorm2d(planes * self.expansion)
+        self.relu = nn.ReLU(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+
+    def forward(self, x):
+        identity = x
+
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+

@@ -34,7 +34,7 @@ local BASE_ITERATOR = {
         "type": "feature_pyramid",
         "backbone": {
             "type": "resnet_encoder",
-            "model_str": "resnet34",
+            "resnet_model": "resnet34",
             "pretrained": false,
             "requires_grad": true
         },

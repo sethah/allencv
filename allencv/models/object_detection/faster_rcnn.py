@@ -8,6 +8,7 @@ from typing import Dict, List, Tuple
 import torch
 import torch.nn as nn
 from allennlp.data import Vocabulary
+from allennlp.modules import FeedForward
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.predictors import Predictor
@@ -23,10 +24,12 @@ from maskrcnn_benchmark.modeling.poolers import Pooler
 from maskrcnn_benchmark.modeling.roi_heads.box_head.inference import PostProcessor
 from maskrcnn_benchmark.modeling.roi_heads.box_head.loss import FastRCNNLossComputation
 from maskrcnn_benchmark.structures.bounding_box import BoxList
+from maskrcnn_benchmark.config import cfg
+from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
 
 from allencv.models.object_detection.region_proposal_network import RPN
 from allencv.models.object_detection import utils as object_utils
-from allencv.modules.im2vec_encoders import Im2VecEncoder
+from allencv.modules.im2vec_encoders import Im2VecEncoder, FlattenEncoder
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -52,6 +55,7 @@ class FasterRCNN(Model):
                  allow_low_quality_matches: bool = True,
                  batch_size_per_image: int = 64,
                  balance_sampling_fraction: float = 0.25,
+                 class_agnostic_bbox_reg: bool = True,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(FasterRCNN, self).__init__(vocab)
         self._train_rpn = train_rpn
@@ -66,7 +70,6 @@ class FasterRCNN(Model):
         else:
             self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self.feature_extractor = roi_feature_extractor
-        class_agnostic_bbox_reg = True
         num_bbox_reg_classes = 2 if class_agnostic_bbox_reg else self._num_labels
         representation_size = roi_feature_extractor.get_output_dim()
         self.cls_score = nn.Linear(representation_size, self._num_labels)
@@ -158,6 +161,116 @@ class FasterRCNN(Model):
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         metrics = {k: v.get_metric(reset) for k, v in self._loss_meters.items()}
         return metrics
+
+CATEGORIES = [
+        "__background",
+        "person",
+        "bicycle",
+        "car",
+        "motorcycle",
+        "airplane",
+        "bus",
+        "train",
+        "truck",
+        "boat",
+        "traffic light",
+        "fire hydrant",
+        "stop sign",
+        "parking meter",
+        "bench",
+        "bird",
+        "cat",
+        "dog",
+        "horse",
+        "sheep",
+        "cow",
+        "elephant",
+        "bear",
+        "zebra",
+        "giraffe",
+        "backpack",
+        "umbrella",
+        "handbag",
+        "tie",
+        "suitcase",
+        "frisbee",
+        "skis",
+        "snowboard",
+        "sports ball",
+        "kite",
+        "baseball bat",
+        "baseball glove",
+        "skateboard",
+        "surfboard",
+        "tennis racket",
+        "bottle",
+        "wine glass",
+        "cup",
+        "fork",
+        "knife",
+        "spoon",
+        "bowl",
+        "banana",
+        "apple",
+        "sandwich",
+        "orange",
+        "broccoli",
+        "carrot",
+        "hot dog",
+        "pizza",
+        "donut",
+        "cake",
+        "chair",
+        "couch",
+        "potted plant",
+        "bed",
+        "dining table",
+        "toilet",
+        "tv",
+        "laptop",
+        "mouse",
+        "remote",
+        "keyboard",
+        "cell phone",
+        "microwave",
+        "oven",
+        "toaster",
+        "sink",
+        "refrigerator",
+        "book",
+        "clock",
+        "vase",
+        "scissors",
+        "teddy bear",
+        "hair drier",
+        "toothbrush",
+    ]
+
+
+class PretrainedDetectronFasterRCNN(FasterRCNN):
+
+    def __init__(self,
+                 rpn: RPN):
+        feedforward = FeedForward(7 * 7 * 256, 2, [1024, 1024], nn.ReLU())
+        encoder = FlattenEncoder(256, 7, 7, feedforward)
+        vocab = Vocabulary({'labels': {k: 1 for k in CATEGORIES}})
+        super(PretrainedDetectronFasterRCNN, self).__init__(vocab, rpn, encoder,
+                                                            num_labels=81,
+                                                   class_agnostic_bbox_reg=False)
+        # TODO: don't rely on their silly config?
+        cfg.MODEL.WEIGHT = "catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x"
+        checkpointer = DetectronCheckpointer(cfg, None, save_dir=None)
+        f = checkpointer._load_file(cfg.MODEL.WEIGHT)
+        feedforward._linear_layers.load_state_dict({
+            '0.weight': f['model']['fc6.weight'],
+            '0.bias': f['model']['fc6.bias'],
+            '1.weight': f['model']['fc7.weight'],
+            '1.bias': f['model']['fc7.bias']
+        })
+        self.cls_score.load_state_dict({'weight': f['model']['cls_score.weight'],
+                                        'bias': f['model']['cls_score.bias']})
+        self.bbox_pred.load_state_dict({'weight': f['model']['bbox_pred.weight'],
+                                        'bias': f['model']['bbox_pred.bias']})
 
 
 @Predictor.register("faster_rcnn")

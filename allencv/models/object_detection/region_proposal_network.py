@@ -5,6 +5,7 @@ from typing import Dict, List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.models.resnet import ResNet
 
 from allennlp.common import Params
 from allennlp.models.archival import load_archive
@@ -14,6 +15,7 @@ from allennlp.training.metrics import Average
 
 from allencv.modules.image_encoders import ImageEncoder, ResnetEncoder, FPN
 from allencv.models.object_detection import utils as object_utils
+from allencv.modules.image_encoders.resnet_encoder import Bottleneck
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from maskrcnn_benchmark.structures.image_list import ImageList
@@ -182,14 +184,15 @@ class PretrainedDetectronRPN(RPN):
                  anchor_aspect_ratios: List[float] = (0.5, 1.0, 2.0),
                  anchor_strides: List[int] = (8, 16, 32),
                  batch_size_per_image: int = 256):
-        backbone = ResnetEncoder('resnet50')
+        # backbone = ResnetEncoder('resnet50')
+        resnet = ResNet(Bottleneck, [3, 4, 6, 3])
+        backbone = ResnetEncoder(resnet)
         fpn = FPN(backbone, 256)
         super(PretrainedDetectronRPN, self).__init__(fpn, anchor_strides=anchor_strides,
                                                      anchor_aspect_ratios=anchor_aspect_ratios,
                                                      anchor_sizes=anchor_sizes,
                                                      batch_size_per_image=batch_size_per_image)
         # TODO: don't rely on their silly config?
-        # TODO: MRCNN has "stridein1x1" param which is unsettable, and differs from torchvision
         cfg.MODEL.WEIGHT = "catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x"
         checkpointer = DetectronCheckpointer(cfg, None, save_dir=None)
         f = checkpointer._load_file(cfg.MODEL.WEIGHT)
@@ -204,8 +207,16 @@ class PretrainedDetectronRPN(RPN):
         resnet_dict = {k: v for k, v in backbone_dict.items()}
         backbone.load_state_dict(resnet_dict, strict=False)
         self._load_fpn_detectron_state(fpn, f['model'])
-        # for p in self.backbone.parameters():
-        #     p.requires_grad = False
+
+        def deactivate_batchnorm(m):
+            if isinstance(m, nn.BatchNorm2d):
+                m.momentum = 0.
+                m.eps = 0.
+                m.running_mean.fill_(0.0)
+                m.running_var.fill_(1.0)
+                # TODO: this will be undone with any model.training() call
+                m.eval()
+        self.apply(deactivate_batchnorm)
 
     def _load_fpn_detectron_state(self, fpn, state: Dict[str, torch.Tensor]):
         for i in range(4):
