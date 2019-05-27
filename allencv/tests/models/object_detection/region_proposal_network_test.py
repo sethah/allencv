@@ -7,11 +7,10 @@ from allencv.modules.image_encoders import ResnetEncoder, FPN
 class TestRegionProposalNetwork(ModelTestCase):
 
     def test_basic_experiment(self):
-        pass
-        # data_directory = AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation"
-        # self.set_up_model(AllenCvTestCase.FIXTURES_ROOT / 'object_detection' / 'region_proposal_network' / 'experiment.jsonnet',
-        #                   data_directory)
-        # self.ensure_model_can_train_save_and_load(self.param_file, tolerance=1e-4)
+        data_directory = AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation"
+        self.set_up_model(AllenCvTestCase.FIXTURES_ROOT / 'object_detection' / 'region_proposal_network' / 'experiment.jsonnet',
+                          data_directory)
+        self.ensure_model_can_train_save_and_load(self.param_file, tolerance=1e-4)
 
     # def test_forward(self):
     #     im = torch.randn(3, 3, 224, 224)
