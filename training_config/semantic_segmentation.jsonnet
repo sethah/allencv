@@ -59,7 +59,7 @@ local initial_lr = 5e-3;
         "type": "feature_pyramid",
         "backbone": {
             "type": "resnet_encoder",
-            "model_str": "resnet101",
+            "resnet_model": "resnet101",
             "pretrained": true,
             "requires_grad": true
         },
