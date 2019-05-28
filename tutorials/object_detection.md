@@ -1,3 +1,5 @@
+# Object detection
+
 Object detection is the task of locating and classifying different types of objects
 in images. AllenCV provides some of the common network architectures for training
 object detection models from scratch, but also provides the ability to leverage 

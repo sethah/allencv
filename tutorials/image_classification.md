@@ -1,3 +1,5 @@
+# Image classification
+
 This document describes how to train a basic image classification model using AllenCV.
 
 AllenCV provides a `BasicImageClassifier` model out-of-the-box, which makes it simple to train
