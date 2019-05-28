@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from allencv.common.testing import ModelTestCase
-from allencv.models.object_detection import RPN, FasterRCNN
+from allencv.models.object_detection import RPN, FasterRCNN, PretrainedDetectronFasterRCNN, PretrainedDetectronRPN
 from allencv.modules.image_encoders import ResnetEncoder, FPN
 from allencv.modules.im2vec_encoders import FlattenEncoder
 
@@ -36,6 +36,22 @@ class TestFasterRCNN(ModelTestCase):
         out = frcnn.forward(im, im_sizes)
         assert list(out['class_logits'].shape) == [fpn_pos_nms_top_n, num_labels]
 
+        decoded = frcnn.decode(out)
+        assert list(decoded['decoded'].shape) == [batch_size, decoder_detections_per_image, 4]
+
+    def test_pretrained(self):
+        batch_size = 3
+        im = torch.randn(batch_size, 3, 224, 224)
+        im_sizes = torch.tensor([im.shape[-2:] for _ in range(im.shape[0])]).view(3, -1)
+        anchor_sizes = [32, 64, 128, 256, 512]
+        anchor_strides = [4, 8, 16, 32, 64]
+        decoder_detections_per_image = 73
+        rpn = PretrainedDetectronRPN(anchor_sizes=anchor_sizes, anchor_strides=anchor_strides)
+        frcnn = PretrainedDetectronFasterRCNN(rpn,
+                                              decoder_thresh=0.0,
+                                              decoder_detections_per_image=decoder_detections_per_image)
+        out = frcnn.forward(im, im_sizes)
+        assert out['class_logits'].shape[1] == 81
         decoded = frcnn.decode(out)
         assert list(decoded['decoded'].shape) == [batch_size, decoder_detections_per_image, 4]
 
