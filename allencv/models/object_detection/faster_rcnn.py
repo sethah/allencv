@@ -153,11 +153,12 @@ class FasterRCNN(Model):
         else:
             predictions_list = [all_predictions]
         all_tags = []
-        for predictions in predictions_list:
-            tags = [self.vocab.get_token_from_index(x, namespace="labels")
-                    for x in predictions]
-            all_tags.append(tags)
-        output_dict['class'] = all_tags
+        if self.vocab is not None:
+            for predictions in predictions_list:
+                tags = [self.vocab.get_token_from_index(x, namespace="labels")
+                        for x in predictions]
+                all_tags.append(tags)
+            output_dict['class'] = all_tags
         # split_logits = class_logits.split([len(p) for p in sampled_proposals])
         # # [(13, 4), (17, 4)] -> (2, 17, 4)
         # split_logits = self.rpn._pad_tensors(split_logits)

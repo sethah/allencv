@@ -95,7 +95,8 @@ class ResnetEncoder(ImageEncoder):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, groups=1,
+                 base_width=64, dilation=1, norm_layer=None):
         super(Bottleneck, self).__init__()
         self.conv1 = conv1x1(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
