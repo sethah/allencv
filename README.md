@@ -16,6 +16,10 @@ Currently, the project requires the [maskrcnn_benchmark](https://github.com/face
 by following the instructions [here](https://github.com/facebookresearch/maskrcnn-benchmark/blob/master/INSTALL.md). 
 This dependence may be removed in the future.
 
+## Running AllenCV
+
+AllenCV follows all the same conventions and supports the same interfaces as AllenNLP. Read more
+about the AllenNLP command line interface [here](https://github.com/allenai/allennlp#running-allennlp).
 
 ## Test it out
 

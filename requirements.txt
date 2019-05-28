@@ -19,6 +19,7 @@ twine>=1.11.0
 
 # Testing
 codecov
+pytest-cov
 pytest>=3.5.0
 
 # maskrcnn-benchmark
