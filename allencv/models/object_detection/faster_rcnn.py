@@ -31,6 +31,52 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 @Model.register("faster_rcnn")
 class FasterRCNN(Model):
+    """
+    A Faster-RCNN model first detects objects in an image using a ``RegionProposalNetwork``.
+    Faster-RCNN further separates those objects into classes and refines their bounding boxes.
+
+    Parameters
+    ----------
+    vocab : ``Vocabulary``
+    rpn: ``RPN``
+        The region proposal network that detects initial objects.
+    roi_feature_extractor: ``Im2VecEncoder``
+        Maps each region of interest into a vector of features.
+    num_labels: ``int``
+        Number of object classe.
+    label_namespace: ``str``
+        Vocabulary namespace corresponding to labels. By default, we use the "labels" namespace.
+    train_rpn: ``bool``
+        Whether to include the RPN's loss in the overall loss.
+    pooler_resolution: ``int``
+        The ROI pooler will output images of this size.
+    pooler_scales: ``List[float]``
+        Scales for each pooler.
+    pooler_sampling_ratio: ``int``
+        The sampling ratio for ROIAlign.
+    decoder_thresh: ``float``
+        The minimum score for an object proposal to make it in the final output.
+    decoder_nms_thresh: ``float``
+        Proposals that overlap by more than this number will be suppressed into one.
+    decoder_detections_per_image: ``int``
+        Number of object detections to be proposed per image.
+    matcher_high_thresh: ``float``
+        Any anchor boxes that overlap with target boxes with an IOU threshold less than
+        this number will be considered background.
+    matcher_low_thresh: ``float``
+        Any anchor boxes that overlap with target boxes with an IOU threshold greater than
+        this number will be considered foreground.
+    allow_low_quality_matches: ``bool``
+        Produce additional matches for predictions that have only low-quality matches.
+    batch_size_per_image: ``int``
+        The number of examples to include in the loss function for each image in each batch.
+    balance_sampling_fraction: ``float``
+        What fraction of each batch in the loss computation should be positive
+        examples (foreground).
+    class_agnostic_bbox_reg: ``bool``
+        Whether to use a separate network for each class's bounding box refinement or a single
+        network for all classes.
+    """
 
     def __init__(self,
                  vocab: Vocabulary,
@@ -69,7 +115,6 @@ class FasterRCNN(Model):
         representation_size = roi_feature_extractor.get_output_dim()
         self.cls_score = nn.Linear(representation_size, self._num_labels)
         self.bbox_pred = nn.Linear(representation_size, num_bbox_reg_classes * 4)
-        self.decoder = PostProcessor()
         matcher = Matcher(high_threshold=matcher_high_thresh,
                           low_threshold=matcher_low_thresh,
                           allow_low_quality_matches=allow_low_quality_matches)
@@ -170,7 +215,7 @@ class FasterRCNN(Model):
         metrics = {k: v.get_metric(reset) for k, v in self._loss_meters.items()}
         return metrics
 
-CATEGORIES = [
+COCO_CATEGORIES = [
         "__background",
         "person",
         "bicycle",
@@ -273,7 +318,7 @@ class PretrainedDetectronFasterRCNN(FasterRCNN):
                 balance_sampling_fraction: float = 0.25):
         feedforward = FeedForward(7 * 7 * 256, 2, [1024, 1024], nn.ReLU())
         encoder = FlattenEncoder(256, 7, 7, feedforward)
-        vocab = Vocabulary({'labels': {k: 1 for k in CATEGORIES}})
+        vocab = Vocabulary({'labels': {k: 1 for k in COCO_CATEGORIES}})
         super(PretrainedDetectronFasterRCNN, self).__init__(vocab, rpn, encoder,
                                                             pooler_resolution=7,
                                                             train_rpn=train_rpn,

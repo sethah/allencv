@@ -34,7 +34,48 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 @Model.register("rpn")
 class RPN(Model):
     """
-    A region proposal network
+    A region proposal network identifies regions of an input image that correspond
+    to objects of various classes. It is typically used as the first stage in a
+    Faster R-CNN.
+
+    Parameters
+    ----------
+    backbone: ``ImageEncoder``
+        Encoder network that provides features from the input image at various scales.
+    positive_fraction: ``float``
+        What fraction of each batch in the loss computation should be positive
+        examples (foreground).
+    match_thresh_low: ``float``
+        Any anchor boxes that overlap with target boxes with an IOU threshold less than
+        this number will be considered background.
+    match_thresh_high: ``float``
+        Any anchor boxes that overlap with target boxes with an IOU threshold greater than
+        this number will be considered foreground.
+    anchor_sizes: ``List[int]``
+        Size of anchor boxes at various levels.
+    anchor_aspect_ratios: ``List[float]``
+        Which aspect ratios to include as anchors for each anchor location.
+    anchor_strides: ``List[int]``
+        How far apart each anchor box center is from its neighbors.
+    batch_size_per_image: ``int``
+        The number of examples to include in the loss function for each image in each batch.
+    pre_nms_top_n: ``int``
+        The number of proposals to keep before non-maximum suppression is applied.
+    post_nms_top_n: ``int``
+        The number of proposals after non-maximum suppression is applied.
+    nms_thresh: ``float``
+        Proposal boxes that overlap by more than this amount will be suppressed.
+    min_size: ``int``
+        The minimum size of a proposal bounding box.
+    fpn_post_nms_top_n: ``int``
+        How many proposals to keep after non-max supprossion is applied.
+    fpn_post_nms_per_batch: ``bool``
+        Whether the `fpn_post_nms_top_n` corresponds to each batch or each image.
+    allow_low_quality_matches: ``bool``
+        Produce additional matches for predictions that have only low-quality matches.
+    straddle_thresh: ``int``
+        How many pixels of an anchor box can be outside the image bounds before it is no
+        longer considered valid.
     """
 
     def __init__(self,
@@ -174,8 +215,6 @@ class PretrainedRPN(RPN):
         return model
 
 
-
-# @RPN.register("detectron_rpn")
 @Model.register("detectron_rpn")
 class PretrainedDetectronRPN(RPN):
 
