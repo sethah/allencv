@@ -1,8 +1,6 @@
 import logging
-import json
-import numpy as np
 from overrides import overrides
-from PIL import Image
+import numpy as np
 from typing import Dict, List, Tuple
 
 import torch
@@ -11,10 +9,7 @@ from allennlp.data import Vocabulary
 from allennlp.modules import FeedForward
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
-from allennlp.predictors import Predictor
 from allennlp.training.metrics import Average
-from allennlp.common.util import JsonDict, sanitize
-from allennlp.data import DatasetReader, Instance
 
 from maskrcnn_benchmark.modeling.balanced_positive_negative_sampler import \
     BalancedPositiveNegativeSampler
@@ -39,7 +34,7 @@ class FasterRCNN(Model):
 
     def __init__(self,
                  vocab: Vocabulary,
-                 rpn: RPN,
+                 rpn: Model,
                  roi_feature_extractor: Im2VecEncoder,
                  num_labels: int = None,
                  label_namespace: str = "labels",
@@ -151,6 +146,18 @@ class FasterRCNN(Model):
         output_dict['labels'] = object_utils.pad_tensors([d.get_field("labels") for d in decoded])
         output_dict['decoded'] = object_utils.pad_tensors([d.bbox for d in decoded])
         output_dict.pop("proposals")
+        all_predictions = output_dict['labels']
+        all_predictions = all_predictions.cpu().data.numpy()
+        if all_predictions.ndim == 2:
+            predictions_list = [all_predictions[i] for i in range(all_predictions.shape[0])]
+        else:
+            predictions_list = [all_predictions]
+        all_tags = []
+        for predictions in predictions_list:
+            tags = [self.vocab.get_token_from_index(x, namespace="labels")
+                    for x in predictions]
+            all_tags.append(tags)
+        output_dict['class'] = all_tags
         # split_logits = class_logits.split([len(p) for p in sampled_proposals])
         # # [(13, 4), (17, 4)] -> (2, 17, 4)
         # split_logits = self.rpn._pad_tensors(split_logits)
@@ -247,16 +254,40 @@ CATEGORIES = [
     ]
 
 
+@Model.register("pretrained_detectron_faster_rcnn")
 class PretrainedDetectronFasterRCNN(FasterRCNN):
 
     def __init__(self,
-                 rpn: RPN):
+                 rpn: Model,
+                train_rpn: bool = False,
+                pooler_scales: Tuple[float] = (0.25, 0.125, 0.0625, 0.03125),
+                pooler_sampling_ratio: int = 2,
+                decoder_thresh: float = 0.1,
+                decoder_nms_thresh: float = 0.5,
+                decoder_detections_per_image: int = 100,
+                matcher_high_thresh: float = 0.5,
+                matcher_low_thresh: float = 0.5,
+                allow_low_quality_matches: bool = True,
+                batch_size_per_image: int = 64,
+                balance_sampling_fraction: float = 0.25):
         feedforward = FeedForward(7 * 7 * 256, 2, [1024, 1024], nn.ReLU())
         encoder = FlattenEncoder(256, 7, 7, feedforward)
         vocab = Vocabulary({'labels': {k: 1 for k in CATEGORIES}})
         super(PretrainedDetectronFasterRCNN, self).__init__(vocab, rpn, encoder,
-                                                            num_labels=81,
-                                                   class_agnostic_bbox_reg=False)
+                                                            pooler_resolution=7,
+                                                            train_rpn=train_rpn,
+                                                            pooler_sampling_ratio=pooler_sampling_ratio,
+                                                            matcher_low_thresh=matcher_low_thresh,
+                                                            matcher_high_thresh=matcher_high_thresh,
+                                                            decoder_thresh=decoder_thresh,
+                                                            decoder_nms_thresh=decoder_nms_thresh,
+                                                            decoder_detections_per_image=decoder_detections_per_image,
+                                                            allow_low_quality_matches=allow_low_quality_matches,
+                                                            batch_size_per_image=batch_size_per_image,
+                                                            pooler_scales=pooler_scales,
+                                                            balance_sampling_fraction=balance_sampling_fraction,
+                                                            label_namespace='labels',
+                                                    class_agnostic_bbox_reg=False)
         # TODO: don't rely on their silly config?
         cfg.MODEL.WEIGHT = "catalog://Caffe2Detectron/COCO/35857345/e2e_faster_rcnn_R-50-FPN_1x"
         checkpointer = DetectronCheckpointer(cfg, None, save_dir=None)
@@ -272,24 +303,3 @@ class PretrainedDetectronFasterRCNN(FasterRCNN):
         self.bbox_pred.load_state_dict({'weight': f['model']['bbox_pred.weight'],
                                         'bias': f['model']['bbox_pred.bias']})
 
-
-@Predictor.register("faster_rcnn")
-class FasterRCNNPredictor(Predictor):
-
-    def __init__(self,
-                 model: Model,
-                 dataset_reader: DatasetReader) -> None:
-        super().__init__(model, dataset_reader)
-
-    def predict(self, image_path: str) -> JsonDict:
-        return self.predict_json({"image_path": image_path})
-
-    @overrides
-    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
-        """
-        Expects JSON that looks like ``{"sentence": "..."}``.
-        Runs the underlying model, and adds the ``"words"`` to the output.
-        """
-        image_path = json_dict["image_path"]
-        img = Image.open(image_path).convert('RGB')
-        return self._dataset_reader.text_to_instance(np.array(img))

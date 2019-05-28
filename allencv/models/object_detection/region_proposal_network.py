@@ -162,7 +162,7 @@ class RPN(Model):
         return metrics
 
 
-# @RPN.register("pretrained")
+@Model.register("pretrained")
 class PretrainedRPN(RPN):
 
     @classmethod
@@ -176,7 +176,7 @@ class PretrainedRPN(RPN):
 
 
 # @RPN.register("detectron_rpn")
-# @Model.register("detectron_rpn")
+@Model.register("detectron_rpn")
 class PretrainedDetectronRPN(RPN):
 
     def __init__(self,
@@ -185,6 +185,7 @@ class PretrainedDetectronRPN(RPN):
                  anchor_strides: List[int] = (8, 16, 32),
                  batch_size_per_image: int = 256):
         # backbone = ResnetEncoder('resnet50')
+        # this is Resnet50 but with the stride matching the detectron pretrained model
         resnet = ResNet(Bottleneck, [3, 4, 6, 3])
         backbone = ResnetEncoder(resnet)
         fpn = FPN(backbone, 256)
