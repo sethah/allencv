@@ -25,6 +25,16 @@ class ImageClassificationDirectory(ImageDatasetReader):
     Reads images from directories where the directory name is the label name for
     all images contained within. Only works one level deep currently.
 
+    data_path
+    |-- Cat
+    |   |-- 00001.jpg
+    |   |-- 00002.jpg
+    |   |-- ...
+    |-- Dog
+    |   |-- 00001.json
+    |   |-- 00002.json
+    |   |-- ...
+
     Parameters
     ----------
     skip_label_indexing: ``bool``, optional (default = ``False``)
