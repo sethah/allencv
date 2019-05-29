@@ -59,7 +59,7 @@ class FPN(ImageEncoder):
             out = converted + upscaled
             converted_images.append(out)
         combined_images = [layer.forward(im) for layer, im in
-                           zip(self._combine_layers, converted_images)]
+                           zip(reversed(self._combine_layers), converted_images)]
         combined_images.insert(0,
                                F.max_pool2d(combined_images[0], kernel_size=1, stride=2, padding=0))
 
