@@ -214,7 +214,7 @@ class FasterRCNN(Model):
         else:
             predictions_list = [all_predictions]
         if self.vocab is not None:
-            idx2token = self.vocab.get_token_from_index(x, namespace="labels")
+            idx2token = self.vocab.get_index_to_token_vocabulary(namespace="labels")
             all_classes = []
             for predictions in predictions_list:
                 all_classes.append([idx2token[x] for x in predictions])
@@ -311,17 +311,11 @@ class FasterRCNN(Model):
         return matched_idxs, labels
 
 
-class TorchvisionFRCNN(Model):
-
-    def __init__(self, initializer: InitializerApplicator = InitializerApplicator()) -> None:
-        super(TorchvisionFRCNN, self).__init__(None)
-        self._model = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
-
-
 @Model.register("pretrained_detectron_faster_rcnn")
 class PretrainedDetectronFasterRCNN(FasterRCNN):
 
     CATEGORIES = [
+     'unlabeled',
      'person',
      'bicycle',
      'car',
@@ -411,8 +405,7 @@ class PretrainedDetectronFasterRCNN(FasterRCNN):
      'scissors',
      'teddy bear',
      'hair drier',
-     'toothbrush',
-     'hair brush']
+     'toothbrush']
 
     def __init__(self,
                  rpn: Model,
@@ -429,27 +422,24 @@ class PretrainedDetectronFasterRCNN(FasterRCNN):
         feedforward = FeedForward(7 * 7 * 256, 2, [1024, 1024], nn.ReLU())
         encoder = FlattenEncoder(256, 7, 7, feedforward)
         vocab = Vocabulary({'labels': {k: 1 for k in PretrainedDetectronFasterRCNN.CATEGORIES}})
-        super(PretrainedDetectronFasterRCNN, self).__init__(vocab, rpn, encoder,
-                                                            pooler_resolution=7,
-                                                            train_rpn=train_rpn,
-                                                            pooler_sampling_ratio=pooler_sampling_ratio,
-                                                            matcher_low_thresh=matcher_low_thresh,
-                                                            matcher_high_thresh=matcher_high_thresh,
-                                                            decoder_thresh=decoder_thresh,
-                                                            decoder_nms_thresh=decoder_nms_thresh,
-                                                            decoder_detections_per_image=decoder_detections_per_image,
-                                                            allow_low_quality_matches=allow_low_quality_matches,
-                                                            batch_size_per_image=batch_size_per_image,
-                                                            balance_sampling_fraction=balance_sampling_fraction,
-                                                            label_namespace='labels',
-                                                    class_agnostic_bbox_reg=False)
-        # TODO: don't rely on their silly config?
+        super(PretrainedDetectronFasterRCNN, self)\
+            .__init__(vocab, rpn, encoder,
+                      pooler_resolution=7,
+                      train_rpn=train_rpn,
+                      pooler_sampling_ratio=pooler_sampling_ratio,
+                      matcher_low_thresh=matcher_low_thresh,
+                      matcher_high_thresh=matcher_high_thresh,
+                      decoder_thresh=decoder_thresh,
+                      decoder_nms_thresh=decoder_nms_thresh,
+                      decoder_detections_per_image=decoder_detections_per_image,
+                      allow_low_quality_matches=allow_low_quality_matches,
+                      batch_size_per_image=batch_size_per_image,
+                      balance_sampling_fraction=balance_sampling_fraction,
+                      label_namespace='labels',
+                      class_agnostic_bbox_reg=False)
         frcnn = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
         self.cls_score.load_state_dict(frcnn.roi_heads.box_predictor.cls_score.state_dict())
         self.bbox_pred.load_state_dict(frcnn.roi_heads.box_predictor.bbox_pred.state_dict())
 
         feedforward._linear_layers[0].load_state_dict(frcnn.roi_heads.box_head.fc6.state_dict())
         feedforward._linear_layers[1].load_state_dict(frcnn.roi_heads.box_head.fc7.state_dict())
-
-
-
