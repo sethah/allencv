@@ -3,18 +3,12 @@ from overrides import overrides
 from PIL import Image
 
 from allennlp.common.util import JsonDict
-from allennlp.data import DatasetReader, Instance
-from allennlp.models.model import Model
+from allennlp.data import Instance
 from allennlp.predictors import Predictor
 
 
 @Predictor.register("faster_rcnn")
 class FasterRCNNPredictor(Predictor):
-
-    def __init__(self,
-                 model: Model,
-                 dataset_reader: DatasetReader) -> None:
-        super().__init__(model, dataset_reader)
 
     def predict(self, image_path: str) -> JsonDict:
         return self.predict_json({"image_path": image_path})
