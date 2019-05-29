@@ -20,29 +20,24 @@ local BASE_ITERATOR = {
   "batch_size": 1,
 };
 
+local RPN = {
+    "type": "detectron_rpn",
+    "anchor_sizes": [[32], [64], [128], [256], [512]],
+    "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]],
+};
+
 {
   "dataset_reader": TRAIN_READER,
   "validation_dataset_reader": TRAIN_READER,
   "train_data_path": "allencv/tests/fixtures/data/image_annotation",
   "validation_data_path": "allencv/tests/fixtures/data/image_annotation",
   "model": {
-    "type": "rpn",
-    "backbone": {
-        "type": "feature_pyramid",
-        "backbone": {
-            "type": "resnet_encoder",
-            "resnet_model": "resnet34",
-            "pretrained": "false",
-            "requires_grad": "true"
-        },
-        "output_channels": 256
-    },
-    "anchor_sizes": [[32], [64], [128], [256], [512]],
-    "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]],
-    "match_thresh_high": 0.001,
-    "match_thresh_low": 0.0,
+    "type": "pretrained_detectron_faster_rcnn",
+    "rpn": RPN,
+    "train_rpn": true,
+    "matcher_high_thresh": 0.001,
+    "matcher_low_thresh": 0.0,
     "batch_size_per_image": 10000000,
-    "straddle_thresh": 2000
   },
   "iterator": BASE_ITERATOR,
   "trainer": {

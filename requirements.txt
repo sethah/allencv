@@ -3,7 +3,7 @@
 
 # main functionality
 torch>=0.4.1
-torchvision
+torchvision==0.3.0
 allennlp
 scipy
 numpy

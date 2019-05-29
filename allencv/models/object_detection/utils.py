@@ -2,8 +2,6 @@ from typing import List
 
 import torch
 
-from maskrcnn_benchmark.structures.bounding_box import BoxList
-
 
 def pad_tensors(tensors: List[torch.Tensor]):
     max_proposals = max([x.shape[0] for x in tensors])
@@ -15,16 +13,11 @@ def pad_tensors(tensors: List[torch.Tensor]):
     return padded
 
 
-def padded_tensor_to_box_list(padded_tensor: torch.Tensor,
-                               image_sizes: torch.Tensor,
-                               **kwargs) -> List[BoxList]:
-    im_sizes = [(x[1].item(), x[0].item()) for x in image_sizes]
+def padded_tensor_to_tensor_list(padded_tensor: torch.Tensor) -> List[torch.Tensor]:
     box_list = []
-    for i, (image_boxes, image_size) in enumerate(zip(padded_tensor, im_sizes)):
+    for image_boxes in padded_tensor:
         # remove boxes that are all zeros (padding)
-        mask = torch.any(image_boxes != 0., dim=1)
-        bl = BoxList(image_boxes[mask], (image_size[1], image_size[0]))
-        for field_name, field_value in kwargs.items():
-            bl.add_field(field_name, field_value[i][mask])
-        box_list.append(bl)
+        mask = torch.any(image_boxes != 0., dim=-1)
+        box_list.append(image_boxes[mask])
     return box_list
+

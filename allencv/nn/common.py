@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -43,3 +45,25 @@ class Upsample(nn.Module):
             if self.num_stages != 0:
                 out = F.interpolate(out, scale_factor=self.scale_factor)
         return out
+
+
+class RPNHead(nn.Module):
+    def __init__(self, in_channels, num_anchors):
+        super(RPNHead, self).__init__()
+        self.conv = nn.Conv2d(
+            in_channels, in_channels, kernel_size=3, stride=1, padding=1
+        )
+        self.cls_logits = nn.Conv2d(in_channels, num_anchors, kernel_size=1, stride=1)
+        self.bbox_pred = nn.Conv2d(
+            in_channels, num_anchors * 4, kernel_size=1, stride=1
+        )
+
+    def forward(self,
+                features: List[torch.Tensor]) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+        objectness: List[torch.Tensor] = []
+        rpn_box_regression: List[torch.Tensor] = []
+        for feature in features:
+            t = F.relu(self.conv(feature))
+            objectness.append(self.cls_logits(t))
+            rpn_box_regression.append(self.bbox_pred(t))
+        return objectness, rpn_box_regression
