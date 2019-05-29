@@ -1,21 +1,19 @@
 import torch
 import torch.nn as nn
 
-from allencv.common.testing import ModelTestCase
-from allencv.models.object_detection import RPN, FasterRCNN, PretrainedDetectronFasterRCNN
-from allencv.modules.image_encoders import ResnetEncoder, FPN
+from allencv.models.object_detection import FasterRCNN
 from allencv.modules.im2vec_encoders import FlattenEncoder
 
-from allencv.common.testing import AllenCvTestCase, ModelTestCase
+from allencv.common.testing import AllenCvTestCase
 from allencv.data.dataset_readers import ImageAnnotationReader
 from allencv.predictors.object_detection import FasterRCNNPredictor
-from allencv.models.object_detection import RPN, PretrainedDetectronRPN
+from allencv.models.object_detection import RPN
 from allencv.modules.image_encoders import ResnetEncoder, FPN
 
 from allennlp.modules import FeedForward
 
 
-class TestFasterRCNN(ModelTestCase):
+class TestFasterRCNN(AllenCvTestCase):
 
     def test_predictor(self):
         batch_size = 3

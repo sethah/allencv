@@ -6,6 +6,37 @@ from torchvision.models.resnet import ResNet, resnet34, resnet50, resnet18, resn
 
 from allencv.modules.im2im_encoders import Im2ImEncoder
 
+# class FromImageEncoder(Im2ImEncoder):
+#     """
+#     An ``Im2ImEncoder`` that passes an input image through a Resnet model structure.
+#
+#     Parameters
+#     ----------
+#     resnet_model: ``ResNet``
+#         The base Resnet model.
+#     layers: ``int``
+#         The input will be passed through only the first ``layers`` layers of the
+#         base Resnet model.
+#     """
+#     def __init__(self,
+#                  image_encoder: ImageEncoder,
+#                  index: int = -1) -> None:
+#         self._encoder = image_encoder
+#         self._index = index
+#
+#     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+#         # pylint: disable=arguments-differ
+#         output = self._encoder(inputs)[self._index]
+#         return output
+#
+#     @overrides
+#     def get_input_channels(self) -> int:
+#         return self._encoder.get_input_channels()
+#
+#     @overrides
+#     def get_output_channels(self) -> int:
+#         return self._encoder.get_output_channels()[self._index]
+
 
 class ResnetEncoder(Im2ImEncoder):
     """

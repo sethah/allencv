@@ -36,6 +36,10 @@ class TestImageField(AllenCvTestCase):
         mask_field = MaskField(im)
         assert list(mask_field.as_tensor(mask_field.get_padding_lengths()).shape) == [8, 10]
 
+        im = np.random.randn(8, 10, 1)
+        mask_field = MaskField(im, channels_first=False)
+        assert list(mask_field.as_tensor(mask_field.get_padding_lengths()).shape) == [8, 10]
+
         im = np.random.randn(8, 10)
         mask_field = MaskField(im)
         assert list(mask_field.as_tensor(mask_field.get_padding_lengths()).shape) == [8, 10]

@@ -26,32 +26,38 @@ class ImageField(Field[np.array]):
             image = image[np.newaxis, :, :]
             channels_first = True
         self.image = image
-        assert len(image.shape) == 3
         if not channels_first:
-            self.image = self.image.transpose(2, 0, 1)
+            h, w, c = self.image.shape
+            self._layout = 'hwc'
+        else:
+            c, h, w = self.image.shape
+            self._layout = 'chw'
+        self._channels = c
+        self._height = h
+        self._width = w
+        assert len(image.shape) == 3
         self.padding_value = padding_value
         self.channels_first = channels_first
 
     @overrides
     def get_padding_lengths(self) -> Dict[str, int]:
         return {
-            'channels': self.image.shape[0],
-            'height': self.image.shape[1],
-            'width': self.image.shape[2],
+            'channels': self._channels,
+            'height': self._height,
+            'width': self._width
         }
 
     @overrides
     def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
         np_img = self.image
-        if not self.channels_first:
-            np_img = self.image.transpose(1, 2, 0)
+        img = torch.from_numpy(np_img).float()
+        if self._layout == 'hwc':
             pad_img = torch.zeros(padding_lengths['height'],
                                   padding_lengths['width'], padding_lengths['channels'])
         else:
             pad_img = torch.zeros(padding_lengths['channels'],
                               padding_lengths['height'], padding_lengths['width'])
-        img = torch.from_numpy(np_img).float()
-        pad_img[: img.shape[0], :img.shape[1], :img.shape[2]].copy_(img)
+        pad_img[:img.shape[0], :img.shape[1], :img.shape[2]].copy_(img)
         return pad_img
 
     @overrides
@@ -71,8 +77,6 @@ class MaskField(ImageField):
     @overrides
     def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
         np_img = self.image
-        if not self.channels_first:
-            np_img = self.image.transpose(1, 2, 0)
         return torch.from_numpy(np_img).squeeze().float()
 
     def __str__(self) -> str:
