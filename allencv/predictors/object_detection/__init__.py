@@ -1,0 +1,1 @@
+from allencv.predictors.object_detection.faster_rcnn import FasterRCNNPredictor
