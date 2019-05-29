@@ -82,21 +82,12 @@ local initial_lr = 5e-3;
     "cuda_device" : if NUM_GPUS > 1 then std.range(0, NUM_GPUS - 1) else 0,
     "optimizer": {
       "type": "adam",
-      "lr": initial_lr,
-      "parameter_groups": [
-      [["(^_encoder\\._backbone\\.layer1)|(^_encoder\\._backbone\\.stem)"], {"initial_lr": initial_lr}],
-      [["^_encoder\\._backbone\\.layer2"], {"initial_lr": initial_lr}],
-      [["^_encoder\\._backbone\\.layer3"], {"initial_lr": initial_lr}],
-      [["^_encoder\\._backbone\\.layer4"], {"initial_lr": initial_lr}],
-      [["(^_encoder\\._combine|^_decoder|^_encoder\\._convert|^upsampling|^final_conv)"], {"initial_lr": initial_lr}],
-     ]
+      "lr": initial_lr
     },
     "learning_rate_scheduler": {
         "type": "slanted_triangular",
         "num_epochs": NUM_EPOCHS,
         "num_steps_per_epoch": 160,
-        "gradual_unfreezing": true,
-        "discriminative_fine_tuning": true,
         "decay_factor": 0.25
     },
     "summary_interval": 20,

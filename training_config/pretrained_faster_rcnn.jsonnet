@@ -7,7 +7,7 @@ local AUGMENTATION = [
                 "height": 512,
                 "width": 512
             }, {
-                "type": "bgr_normalize"
+                "type": "normalize"
             }
         ];
 local READER = {
@@ -25,8 +25,8 @@ local MODEL = {
     "type": "pretrained_detectron_faster_rcnn",
     "rpn": {
         "type": "detectron_rpn",
-        "anchor_sizes": [64, 128, 256, 512],
-        "anchor_strides": [4, 8, 16, 32]
+        "anchor_sizes": [[32], [64], [128], [256], [512]],
+        "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]],
     },
     "decoder_thresh": 0.1
 };

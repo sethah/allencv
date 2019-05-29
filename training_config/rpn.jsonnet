@@ -47,14 +47,14 @@ local MODEL = {
         "type": "feature_pyramid",
         "backbone": {
             "type": "resnet_encoder",
-            "model_str": "resnet101",
+            "resnet_model": "resnet101",
             "pretrained": "true",
             "requires_grad": "true"
         },
         "output_channels": 256
     },
-    "anchor_sizes": [64, 128, 256, 512],
-    "anchor_strides": [4, 8, 16, 32],
+    "anchor_sizes": [[32], [64], [128], [256], [512]],
+    "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]]
 };
 
 local start_momentum = 0.9;

@@ -42,4 +42,4 @@ allennlp train $ALLENCV_DIR/training_config/semantic_segmentation.jsonnet \
 --include-package allencv.models.semantic_segmentation \
 --include-package allencv.modules.image_decoders \
 -s models/semantic_segmentation0
-``
+```

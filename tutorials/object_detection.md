@@ -55,7 +55,7 @@ We can now use AllenNLP's `predict` command to make predictions on a test input.
 create a simple input json file.
 
 ```bash
-echo `{"image_path": "/path/to/test/image.jpg"}` > test_input.json
+echo '{"image_path": "/path/to/test/image.jpg"}' > test_input.json
 ```
 
 Make predictions on an input image.
