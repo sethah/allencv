@@ -1,12 +1,11 @@
 local NUM_GPUS = 1;
-local NUM_THREADS = 1;
-local NUM_EPOCHS = 15;
+local NUM_EPOCHS = 5;
 
 local TRAIN_AUGMENTATION = [
             {
                 "type": "resize",
-                "height": 512,
-                "width": 512
+                "height": 224,
+                "width": 224
             }, {
                 "type": "normalize",
                 "mean": [0.485, 0.456, 0.406],
@@ -23,8 +22,8 @@ local TRAIN_AUGMENTATION = [
 local VALID_AUGMENTATION = [
             {
                 "type": "resize",
-                "height": 512,
-                "width": 512
+                "height": 224,
+                "width": 224
             }, {
                 "type": "normalize",
                 "mean": [0.485, 0.456, 0.406],
@@ -32,23 +31,6 @@ local VALID_AUGMENTATION = [
             }
         ];
 
-local BASE_READER = {
-        "type": "image_classification_directory",
-        "augmentation": [
-            {
-                "type": "resize",
-                "height": 224,
-                "width": 224
-            }, {
-                "type": "normalize",
-                "mean": [0.485, 0.456, 0.406],
-                "std": [0.229, 0.224, 0.225]
-            }, {
-                "type": "flip",
-                "p": 0.5
-            }
-        ]
-};
 local TRAIN_READER = {
         "type": "image_classification_directory",
         "augmentation": TRAIN_AUGMENTATION,
@@ -62,8 +44,7 @@ local VALID_READER = {
 
 local BASE_ITERATOR = {
   "type": "basic",
-  "max_instances_in_memory": 16384 * NUM_GPUS,
-  "batch_size": 32 * NUM_GPUS,
+  "batch_size": 16 * NUM_GPUS,
 };
 
 {
@@ -72,10 +53,6 @@ local BASE_ITERATOR = {
   "train_data_path": std.extVar("TRAIN_PATH"),
   "validation_data_path": std.extVar("VALIDATION_PATH"),
 
-  "vocabulary": {
-      "max_vocab_size": 50000,
-      "min_count": {"tokens": 3}
-  },
   "model": {
     "type": "basic_image_classifier",
     "im2im_encoder": {
@@ -100,12 +77,12 @@ local BASE_ITERATOR = {
       "type": "adam",
       "lr": 1e-5,
       "parameter_groups": [
-      [["^_im2im_encoder\\.model\\.(0|1)"], {"initial_lr": 0.00002}],
-      [["^_im2im_encoder\\.model\\.4"], {"initial_lr": 0.00002}],
-      [["^_im2im_encoder\\.model\\.5"], {"initial_lr": 0.00003}],
-      [["^_im2im_encoder\\.model\\.6"], {"initial_lr": 0.00004}],
-      [["^_im2im_encoder\\.model\\.7"], {"initial_lr": 0.00005}],
-      [["^_classification_layer"], {"initial_lr": 0.001}]
+          [["^_im2im_encoder\\.model\\.(0|1)"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.4"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.5"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.6"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.7"], {"initial_lr": 1e-5}],
+          [["^_classification_layer"], {"initial_lr": 1e-5}]
      ]
     },
     "learning_rate_scheduler": {
