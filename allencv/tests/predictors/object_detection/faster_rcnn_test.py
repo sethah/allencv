@@ -23,12 +23,12 @@ class TestFasterRCNN(AllenCvTestCase):
         fpn_out_channels = 256
         fpn_backbone = FPN(backbone, fpn_out_channels)
         anchor_sizes = [[32], [64], [128], [256], [512]]
-        anchor_strides = [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0],
+        anchor_aspect_ratios = [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0],
                           [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]]
         fpn_pos_nms_top_n = 400
         rpn = RPN(fpn_backbone,
                   anchor_sizes=anchor_sizes,
-                  anchor_strides=anchor_strides,
+                  anchor_aspect_ratios=anchor_aspect_ratios,
                   fpn_post_nms_top_n=fpn_pos_nms_top_n,
                   match_thresh_high=0.001,
                   match_thresh_low=0.0,

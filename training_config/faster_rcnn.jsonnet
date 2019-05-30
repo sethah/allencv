@@ -54,9 +54,7 @@ local RPN = {
             "requires_grad": true
         },
         "output_channels": 256
-    },
-    "anchor_sizes": [64, 128, 256, 512],
-    "anchor_strides": [4, 8, 16, 32]
+    }
 };
 
 local MODEL = {
