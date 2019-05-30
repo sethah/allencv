@@ -1,3 +1,4 @@
+import numpy as np
 from overrides import overrides
 from typing import Dict
 
@@ -94,6 +95,11 @@ class BasicImageClassifier(Model):
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         output_dict['prediction'] = torch.argmax(output_dict['probs'], dim=1)
+        all_predictions = output_dict['prediction']
+        all_predictions = all_predictions.cpu().data.numpy()
+        if self.vocab is not None:
+            idx2token = self.vocab.get_index_to_token_vocabulary(namespace="labels")
+            output_dict['class'] = [idx2token[x] for x in all_predictions]
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
