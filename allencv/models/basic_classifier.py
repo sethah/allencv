@@ -1,8 +1,8 @@
-import numpy as np
-from overrides import overrides
 from typing import Dict
 
+from overrides import overrides
 import torch
+
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
@@ -29,8 +29,8 @@ class BasicImageClassifier(Model):
     dropout : ``float``, optional (default = ``None``)
         Dropout percentage to use.
     num_labels: ``int``, optional (default = ``None``)
-        Number of labels to project to in classification layer. By default, the classification layer will
-        project to the size of the vocabulary namespace corresponding to labels.
+        Number of labels to project to in classification layer. By default, the classification
+        layer will project to the size of the vocabulary namespace corresponding to labels.
     label_namespace: ``str``, optional (default = "labels")
         Vocabulary namespace corresponding to labels. By default, we use the "labels" namespace.
     initializer : ``InitializerApplicator``, optional (default=``InitializerApplicator()``)

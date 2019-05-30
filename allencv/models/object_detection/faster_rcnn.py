@@ -1,7 +1,8 @@
+from typing import Dict, List, Tuple
+
+from collections import OrderedDict
 import logging
 from overrides import overrides
-from typing import Dict, List, Tuple
-from collections import OrderedDict
 
 import torch
 import torch.nn as nn
@@ -15,11 +16,10 @@ from allennlp.training.metrics import Average
 
 from torchvision.models.detection import _utils as det_utils
 from torchvision.ops import boxes as box_ops
-from torchvision.models.detection import FasterRCNN, fasterrcnn_resnet50_fpn
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.ops.poolers import MultiScaleRoIAlign
 from torchvision.models.detection.roi_heads import fastrcnn_loss
 
-from allencv.models.object_detection.region_proposal_network import RPN
 from allencv.models.object_detection import utils as object_utils
 from allencv.modules.im2vec_encoders import Im2VecEncoder, FlattenEncoder
 
@@ -109,11 +109,12 @@ class FasterRCNN(Model):
         self.bbox_pred = nn.Linear(representation_size, num_bbox_reg_classes * 4)
 
         self.proposal_matcher = det_utils.Matcher(
-            high_threshold=matcher_high_thresh,
-            low_threshold=matcher_low_thresh,
-            allow_low_quality_matches=allow_low_quality_matches)
-        self.sampler = det_utils.BalancedPositiveNegativeSampler(batch_size_per_image,
-                                                  positive_fraction=balance_sampling_fraction)
+                high_threshold=matcher_high_thresh,
+                low_threshold=matcher_low_thresh,
+                allow_low_quality_matches=allow_low_quality_matches)
+        self.sampler = det_utils.BalancedPositiveNegativeSampler(
+                batch_size_per_image,
+                positive_fraction=balance_sampling_fraction)
         self.box_coder = det_utils.BoxCoder(weights=(10., 10., 5., 5.))
         self.box_roi_pool = MultiScaleRoIAlign(
                 featmap_names=[0, 1, 2, 3],
@@ -128,6 +129,7 @@ class FasterRCNN(Model):
                 image_sizes: torch.Tensor,  # (batch_size, 2)
                 boxes: torch.Tensor = None,  # (batch_size, s, 4)
                 box_classes: torch.Tensor = None):
+        # pylint: disable=arguments-differ
         rpn_out = self.rpn.forward(image, image_sizes, boxes)
         rpn_out = self.rpn.decode(rpn_out)
         features: List[torch.Tensor] = rpn_out['features']
@@ -140,14 +142,12 @@ class FasterRCNN(Model):
                 # TODO: fix single dimension case?
                 gt_labels = [x.squeeze() for x in object_utils.padded_tensor_to_tensor_list(box_classes)]
                 gt_boxes = object_utils.padded_tensor_to_tensor_list(boxes)
-                matched_idxs, labels = self._assign_targets_to_proposals(proposals, gt_boxes,
-                                                                        gt_labels)
+                matched_idxs, labels = self._assign_targets_to_proposals(
+                        proposals, gt_boxes, gt_labels)
                 # subsample
                 sampled_pos_inds, sampled_neg_inds = self.sampler(labels)
                 sampled_inds = []
-                for img_idx, (pos_inds_img, neg_inds_img) in enumerate(
-                        zip(sampled_pos_inds, sampled_neg_inds)
-                ):
+                for pos_inds_img, neg_inds_img in zip(sampled_pos_inds, sampled_neg_inds):
                     img_sampled_inds = torch.nonzero(pos_inds_img | neg_inds_img).squeeze(1)
                     sampled_inds.append(img_sampled_inds)
 
@@ -183,7 +183,7 @@ class FasterRCNN(Model):
             rpn_classifier_loss = rpn_out['loss_objectness']
             rpn_regression_loss = rpn_out['loss_rpn_box_reg']
             classifier_loss, regression_loss = fastrcnn_loss(
-                class_logits, box_regression, labels, regression_targets)
+                    class_logits, box_regression, labels, regression_targets)
             loss = 0.003 * classifier_loss + regression_loss
             if self._train_rpn:
                 loss += 0.1 * rpn_classifier_loss + rpn_regression_loss
@@ -197,10 +197,11 @@ class FasterRCNN(Model):
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # TODO: provide split class and regression tensors?
-        boxes, scores, labels = self._postprocess_detections(output_dict['class_logits'],
-                                                            output_dict['box_regression'],
-                                                            output_dict['proposals'],
-                                                            output_dict['image_sizes'])
+        boxes, scores, labels = self._postprocess_detections(
+                output_dict['class_logits'],
+                output_dict['box_regression'],
+                output_dict['proposals'],
+                output_dict['image_sizes'])
         output_dict['scores'] = object_utils.pad_tensors(scores)
         output_dict['labels'] = object_utils.pad_tensors(labels)
         output_dict['decoded'] = object_utils.pad_tensors(boxes)
@@ -315,110 +316,110 @@ class FasterRCNN(Model):
 class PretrainedDetectronFasterRCNN(FasterRCNN):
 
     CATEGORIES = [
-     'unlabeled',
-     'person',
-     'bicycle',
-     'car',
-     'motorcycle',
-     'airplane',
-     'bus',
-     'train',
-     'truck',
-     'boat',
-     'traffic light',
-     'fire hydrant',
-     'street sign',
-     'stop sign',
-     'parking meter',
-     'bench',
-     'bird',
-     'cat',
-     'dog',
-     'horse',
-     'sheep',
-     'cow',
-     'elephant',
-     'bear',
-     'zebra',
-     'giraffe',
-     'hat',
-     'backpack',
-     'umbrella',
-     'shoe',
-     'eye glasses',
-     'handbag',
-     'tie',
-     'suitcase',
-     'frisbee',
-     'skis',
-     'snowboard',
-     'sports ball',
-     'kite',
-     'baseball bat',
-     'baseball glove',
-     'skateboard',
-     'surfboard',
-     'tennis racket',
-     'bottle',
-     'plate',
-     'wine glass',
-     'cup',
-     'fork',
-     'knife',
-     'spoon',
-     'bowl',
-     'banana',
-     'apple',
-     'sandwich',
-     'orange',
-     'broccoli',
-     'carrot',
-     'hot dog',
-     'pizza',
-     'donut',
-     'cake',
-     'chair',
-     'couch',
-     'potted plant',
-     'bed',
-     'mirror',
-     'dining table',
-     'window',
-     'desk',
-     'toilet',
-     'door',
-     'tv',
-     'laptop',
-     'mouse',
-     'remote',
-     'keyboard',
-     'cell phone',
-     'microwave',
-     'oven',
-     'toaster',
-     'sink',
-     'refrigerator',
-     'blender',
-     'book',
-     'clock',
-     'vase',
-     'scissors',
-     'teddy bear',
-     'hair drier',
-     'toothbrush']
+            'unlabeled',
+            'person',
+            'bicycle',
+            'car',
+            'motorcycle',
+            'airplane',
+            'bus',
+            'train',
+            'truck',
+            'boat',
+            'traffic light',
+            'fire hydrant',
+            'street sign',
+            'stop sign',
+            'parking meter',
+            'bench',
+            'bird',
+            'cat',
+            'dog',
+            'horse',
+            'sheep',
+            'cow',
+            'elephant',
+            'bear',
+            'zebra',
+            'giraffe',
+            'hat',
+            'backpack',
+            'umbrella',
+            'shoe',
+            'eye glasses',
+            'handbag',
+            'tie',
+            'suitcase',
+            'frisbee',
+            'skis',
+            'snowboard',
+            'sports ball',
+            'kite',
+            'baseball bat',
+            'baseball glove',
+            'skateboard',
+            'surfboard',
+            'tennis racket',
+            'bottle',
+            'plate',
+            'wine glass',
+            'cup',
+            'fork',
+            'knife',
+            'spoon',
+            'bowl',
+            'banana',
+            'apple',
+            'sandwich',
+            'orange',
+            'broccoli',
+            'carrot',
+            'hot dog',
+            'pizza',
+            'donut',
+            'cake',
+            'chair',
+            'couch',
+            'potted plant',
+            'bed',
+            'mirror',
+            'dining table',
+            'window',
+            'desk',
+            'toilet',
+            'door',
+            'tv',
+            'laptop',
+            'mouse',
+            'remote',
+            'keyboard',
+            'cell phone',
+            'microwave',
+            'oven',
+            'toaster',
+            'sink',
+            'refrigerator',
+            'blender',
+            'book',
+            'clock',
+            'vase',
+            'scissors',
+            'teddy bear',
+            'hair drier',
+            'toothbrush']
 
     def __init__(self,
                  rpn: Model,
-                train_rpn: bool = False,
-                pooler_sampling_ratio: int = 2,
-                decoder_thresh: float = 0.1,
-                decoder_nms_thresh: float = 0.5,
-                decoder_detections_per_image: int = 100,
-                matcher_high_thresh: float = 0.5,
-                matcher_low_thresh: float = 0.5,
-                allow_low_quality_matches: bool = True,
-                batch_size_per_image: int = 64,
-                balance_sampling_fraction: float = 0.25):
+                 train_rpn: bool = False,
+                 pooler_sampling_ratio: int = 2,
+                 decoder_thresh: float = 0.1,
+                 decoder_nms_thresh: float = 0.5,
+                 decoder_detections_per_image: int = 100,
+                 matcher_high_thresh: float = 0.5,
+                 matcher_low_thresh: float = 0.5,
+                 allow_low_quality_matches: bool = True,
+                 batch_size_per_image: int = 64,
+                 balance_sampling_fraction: float = 0.25):
         feedforward = FeedForward(7 * 7 * 256, 2, [1024, 1024], nn.ReLU())
         encoder = FlattenEncoder(256, 7, 7, feedforward)
         vocab = Vocabulary({'labels': {k: 1 for k in PretrainedDetectronFasterRCNN.CATEGORIES}})
@@ -441,5 +442,6 @@ class PretrainedDetectronFasterRCNN(FasterRCNN):
         self.cls_score.load_state_dict(frcnn.roi_heads.box_predictor.cls_score.state_dict())
         self.bbox_pred.load_state_dict(frcnn.roi_heads.box_predictor.bbox_pred.state_dict())
 
+        # pylint: disable = protected-access
         feedforward._linear_layers[0].load_state_dict(frcnn.roi_heads.box_head.fc6.state_dict())
         feedforward._linear_layers[1].load_state_dict(frcnn.roi_heads.box_head.fc7.state_dict())

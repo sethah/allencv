@@ -1,9 +1,8 @@
+from typing import Dict, List, Tuple
 import logging
 from overrides import overrides
-from typing import Dict, List, Tuple
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models.detection.rpn import AnchorGenerator, concat_box_prediction_layers
 from torchvision.models.detection.image_list import ImageList
@@ -11,8 +10,6 @@ from torchvision.models.detection import _utils as det_utils
 from torchvision.ops import boxes as box_ops
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 
-from allennlp.common import Params
-from allennlp.models.archival import load_archive
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average
@@ -107,8 +104,10 @@ class RPN(Model):
 
         # matcher decides if an anchor box is a foreground or background based on how much
         # it overlaps with the nearest target box
-        self.proposal_matcher = det_utils.Matcher(match_thresh_high, match_thresh_low,
-                          allow_low_quality_matches=allow_low_quality_matches)
+        self.proposal_matcher = det_utils.Matcher(
+                match_thresh_high,
+                match_thresh_low,
+                allow_low_quality_matches=allow_low_quality_matches)
 
         self.backbone = backbone
         self.anchor_generator = AnchorGenerator(anchor_sizes, anchor_aspect_ratios)
@@ -152,22 +151,22 @@ class RPN(Model):
         return labels, matched_gt_boxes
 
     def _get_top_n_idx(self, objectness, num_anchors_per_level):
-        r = []
+        result = []
         offset = 0
         for ob in objectness.split(num_anchors_per_level, 1):
             num_anchors = ob.shape[1]
             pre_nms_top_n = min(self.pre_nms_top_n, num_anchors)
             _, top_n_idx = ob.topk(pre_nms_top_n, dim=1)
-            r.append(top_n_idx + offset)
+            result.append(top_n_idx + offset)
             offset += num_anchors
-        return torch.cat(r, dim=1)
+        return torch.cat(result, dim=1)
 
     def forward(self,
                 image: torch.Tensor,  # (batch_size, c, h, w)
                 image_sizes: torch.Tensor,  # (batch_size, 2)
                 boxes: torch.Tensor = None,  # (batch_size, max_boxes_in_batch, 4)
-                box_classes: torch.Tensor = None
-                ) -> Dict[str, torch.Tensor]:
+                box_classes: torch.Tensor = None) -> Dict[str, torch.Tensor]:
+        # pylint: disable=arguments-differ
         im_sizes = [(x[1].item(), x[0].item()) for x in image_sizes]
         image_list = ImageList(image, im_sizes)
         features = self.backbone.forward(image)
@@ -184,7 +183,8 @@ class RPN(Model):
                'sizes': image_sizes,
                'num_anchors_per_level': num_anchors_per_level}
         if boxes is not None:
-            labels, matched_gt_boxes = self.assign_targets_to_anchors(anchors, object_utils.padded_tensor_to_tensor_list(boxes))
+            labels, matched_gt_boxes = self.assign_targets_to_anchors(
+                    anchors, object_utils.padded_tensor_to_tensor_list(boxes))
             regression_targets = self.box_coder.encode(matched_gt_boxes, anchors)
 
             sampled_pos_inds, sampled_neg_inds = self.sampler(labels)
@@ -199,13 +199,13 @@ class RPN(Model):
             regression_targets = torch.cat(regression_targets, dim=0)
 
             loss_rpn_box_reg = F.l1_loss(
-                rpn_box_regression[sampled_pos_inds],
-                regression_targets[sampled_pos_inds],
-                reduction="sum",
+                    rpn_box_regression[sampled_pos_inds],
+                    regression_targets[sampled_pos_inds],
+                    reduction="sum",
             ) / (sampled_inds.numel())
 
             loss_objectness = F.binary_cross_entropy_with_logits(
-                objectness[sampled_inds], labels[sampled_inds]
+                    objectness[sampled_inds], labels[sampled_inds]
             )
             self._loss_meters['rpn_cls_loss'](loss_objectness.item())
             self._loss_meters['rpn_reg_loss'](loss_rpn_box_reg.item())
@@ -222,8 +222,8 @@ class RPN(Model):
         objectness = objectness.reshape(num_images, -1)
 
         levels = [
-            torch.full((n,), idx, dtype=torch.int64, device=device)
-            for idx, n in enumerate(num_anchors_per_level)
+                torch.full((n,), idx, dtype=torch.int64, device=device)
+                for idx, n in enumerate(num_anchors_per_level)
         ]
         levels = torch.cat(levels, 0)
         levels = levels.reshape(1, -1).expand_as(objectness)
@@ -253,8 +253,8 @@ class RPN(Model):
     @overrides
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # you get a list of proposal boxes for each image in the batch
-        proposals = self.box_coder.decode(output_dict['rpn_box_regression'],
-                                         output_dict['anchors'])
+        proposals = self.box_coder.decode(
+                output_dict['rpn_box_regression'], output_dict['anchors'])
         num_images = len(output_dict['anchors'])
         proposals = proposals.view(num_images, -1, 4)
         boxes, scores = self.filter_proposals(proposals,
@@ -300,5 +300,7 @@ class PretrainedDetectronRPN(RPN):
         frcnn = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
         backbone.load_state_dict(frcnn.backbone.body.state_dict())
         self._rpn_head.load_state_dict(frcnn.rpn.head.state_dict())
+
+        # pylint: disable = protected-access
         fpn_backbone._convert_layers.load_state_dict(frcnn.backbone.fpn.inner_blocks.state_dict())
         fpn_backbone._combine_layers.load_state_dict(frcnn.backbone.fpn.layer_blocks.state_dict())

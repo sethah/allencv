@@ -74,7 +74,8 @@ class ImageAnnotationReader(ImageDatasetReader):
             sample = img.convert('RGB')
             yield self.text_to_instance(np.array(sample), label_boxes, label_classes)
 
-    def _parse_annotation(self, annotation) -> List[List[float]]:
+    @staticmethod
+    def _parse_annotation(annotation) -> List[List[float]]:
         boxes = []
         for att in annotation['regions']:
             box = att['shape_attributes']

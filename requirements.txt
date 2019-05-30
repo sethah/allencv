@@ -22,6 +22,9 @@ codecov
 pytest-cov
 pytest>=3.5.0
 
+# Checks style, syntax, and other useful errors.
+pylint==1.9.4
+
 # maskrcnn-benchmark
 ninja
 yacs
