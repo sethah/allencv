@@ -6,7 +6,7 @@ from allencv.modules.im2vec_encoders import FlattenEncoder
 
 from allencv.common.testing import AllenCvTestCase
 from allencv.data.dataset_readers import ImageAnnotationReader
-from allencv.predictors.object_detection import FasterRCNNPredictor
+from allencv.predictors import ImagePredictor
 from allencv.models.object_detection import RPN
 from allencv.modules.image_encoders import ResnetEncoder, FPN
 
@@ -45,6 +45,6 @@ class TestFasterRCNN(AllenCvTestCase):
                            decoder_nms_thresh=0.01,
                            batch_size_per_image=1000000)
         reader = ImageAnnotationReader()
-        predictor = FasterRCNNPredictor(frcnn, reader)
+        predictor = ImagePredictor(frcnn, reader)
         predicted = predictor.predict(AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation" / "images" / "00001.jpg")
         assert len(predicted['scores']) == len(predicted['labels'])
