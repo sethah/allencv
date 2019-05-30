@@ -82,7 +82,8 @@ image augmentation to each image. We can configure the dataset reader as follows
 ```
 
 Defining image augmentation is simple using this dataset reader. The underlying implementation is
- based on the [Albumentations]() library. For image classification augmentation is only applied to
+ based on the [Albumentations](https://github.com/albu/albumentations) library. 
+ For image classification augmentation is only applied to
  the input images, but in more complex cases dealing with bounding boxes or pixel masks augmentation
  will need to be applied to labels as well. This is automatically handled by the dataset readers.
 
@@ -159,14 +160,14 @@ be defined as follows:
     "cuda_device" : 0,
     "optimizer": {
       "type": "adam",
-      "lr": 1e-3
+      "lr": 1e-5,
       "parameter_groups": [
-          [["^_im2im_encoder\\.model\\.(0|1)"]],
-          [["^_im2im_encoder\\.model\\.4"]],
-          [["^_im2im_encoder\\.model\\.5"]],
-          [["^_im2im_encoder\\.model\\.6"]],
-          [["^_im2im_encoder\\.model\\.7"]],
-          [["^_classification_layer"]]
+          [["^_im2im_encoder\\.model\\.(0|1)"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.4"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.5"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.6"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\.model\\.7"], {"initial_lr": 1e-5}],
+          [["^_classification_layer"], {"initial_lr": 1e-5}]
      ]
     },
     "learning_rate_scheduler": {
@@ -193,7 +194,7 @@ allennlp train $ALLENCV_DIR/training_config/image_classifier.jsonnet \
 -s models/catsanddogs 
 ```
 
-# Predictions
+## Predictions
 
 We'll use the the AllenNLP `Predictor` abstraction to make json to json predictions. First, 
 we need an input.

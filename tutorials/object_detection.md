@@ -42,12 +42,11 @@ Use a no-op `Trainer` to generate a model archive for a pre-trained model.
 ```bash
 TRAIN_PATH=$ALLENCV_DIR/data/pascal_voc_segmentation/train \
 allennlp train $ALLENCV_DIR/training_config/pretrained_faster_rcnn.jsonnet \
---include-package allencv.data.dataset_readers.image_annotation_reader \
+--include-package allencv.data.dataset_readers \
 --include-package allencv.modules.image_encoders \
 --include-package allencv.modules.image_decoders \
 --include-package allencv.modules.im2vec_encoders \
---include-package allencv.models.object_detection.region_proposal_network \
---include-package allencv.models.object_detection.faster_rcnn \
+--include-package allencv.models.object_detection \
 -s models/pretrained0
 ```
 
@@ -62,17 +61,16 @@ Make predictions on an input image.
 
 ```bash
 allennlp predict models/pretrained0/model.tar.gz test_input.json \
---output-file test_prediction.json --silent --predictor faster_rcnn \
---include-package allencv.data.dataset_readers.image_annotation_reader \
+--predictor default_image \
+--include-package allencv.data.dataset_readers \
 --include-package allencv.modules.image_encoders \
 --include-package allencv.modules.image_decoders \
 --include-package allencv.modules.im2vec_encoders \
---include-package allencv.models.object_detection.region_proposal_network \
---include-package allencv.models.object_detection.faster_rcnn \
---include-package allencv.predictors.object_detection.faster_rcnn 
+--include-package allencv.models.object_detection \
+--include-package allencv.predictors
 ```
 
-The output of the model will be a json file containing various prediction fields for each image:
+The output of the model will be json containing various prediction fields for each image:
 
 ```
 {
@@ -82,6 +80,7 @@ The output of the model will be a json file containing various prediction fields
     [ 6.048294,  83.67108 , 260.5799  , 506.15118], 
     [234.09766 , 276.13324 , 364.14117 , 503.4488]],
 "class": ["person", "dog"]
+}
 ```
 
 ![Faster R-CNN inference](pretrained_inference.jpg)
