@@ -3,8 +3,9 @@
 [![Build Status](https://travis-ci.com/sethah/allencv.svg?branch=master)](https://travis-ci.com/sethah/allencv)
 [![codecov](https://codecov.io/gh/sethah/allencv/branch/master/graph/badge.svg)](https://codecov.io/gh/sethah/allencv)
 
-A computer vision library built on top of [PyTorch](https://github.com/pytorch/pytorch) and 
-[AllenNLP](https://github.com/allenai/allennlp).
+A computer vision library built on top of [PyTorch](https://github.com/pytorch/pytorch),
+[Torchvision](https://github.com/pytorch/vision), 
+and [AllenNLP](https://github.com/allenai/allennlp).
 
 ## Quick Links
 
