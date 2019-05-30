@@ -45,8 +45,6 @@ class RPN(Model):
         Size of anchor boxes at various levels.
     anchor_aspect_ratios: ``List[float]``
         Which aspect ratios to include as anchors for each anchor location.
-    anchor_strides: ``List[int]``
-        How far apart each anchor box center is from its neighbors.
     batch_size_per_image: ``int``
         The number of examples to include in the loss function for each image in each batch.
     pre_nms_top_n: ``int``
@@ -63,9 +61,6 @@ class RPN(Model):
         Whether the `fpn_post_nms_top_n` corresponds to each batch or each image.
     allow_low_quality_matches: ``bool``
         Produce additional matches for predictions that have only low-quality matches.
-    straddle_thresh: ``int``
-        How many pixels of an anchor box can be outside the image bounds before it is no
-        longer considered valid.
     """
 
     def __init__(self,
@@ -75,7 +70,6 @@ class RPN(Model):
                  match_thresh_high: float = 0.7,
                  anchor_sizes: List[int] = (128, 256, 512),
                  anchor_aspect_ratios: List[float] = (0.5, 1.0, 2.0),
-                 anchor_strides: List[int] = (8, 16, 32),
                  batch_size_per_image: int = 256,
                  pre_nms_top_n: int = 6000,
                  post_nms_top_n: int = 300,
@@ -84,7 +78,6 @@ class RPN(Model):
                  fpn_post_nms_top_n: int = 1000,
                  fpn_post_nms_per_batch: int = True,
                  allow_low_quality_matches: bool = True,
-                 straddle_thresh: int = 0,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RPN, self).__init__(None)
         self._rpn_head = RPNHead(256, 3)
@@ -100,7 +93,8 @@ class RPN(Model):
         # sampler is responsible for selecting a subset of anchor boxes for computing the loss
         # this makes sure each batch has reasonable balance of foreground/background labels
         # it selects `batch_size_per_image` total boxes
-        self.sampler = det_utils.BalancedPositiveNegativeSampler(batch_size_per_image, positive_fraction)
+        self.sampler = det_utils.BalancedPositiveNegativeSampler(batch_size_per_image,
+                                                                 positive_fraction)
 
         # matcher decides if an anchor box is a foreground or background based on how much
         # it overlaps with the nearest target box
@@ -286,12 +280,17 @@ class RPN(Model):
 class PretrainedDetectronRPN(RPN):
 
     def __init__(self,
-                 anchor_sizes: List[int] = (128, 256, 512),
-                 anchor_aspect_ratios: List[float] = (0.5, 1.0, 2.0),
+                 anchor_sizes: List[int] = None,
+                 anchor_aspect_ratios: List[float] = None,
                  anchor_strides: List[int] = (8, 16, 32),
                  batch_size_per_image: int = 256):
         backbone = ResnetEncoder('resnet50')
         fpn_backbone = FPN(backbone, 256)
+        if anchor_sizes is None:
+            anchor_sizes = [[32], [64], [128], [256], [512]]
+        if anchor_strides is None:
+            anchor_strides = [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0],
+                              [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]]
         super(PretrainedDetectronRPN, self).__init__(fpn_backbone,
                                                      anchor_strides=anchor_strides,
                                                      anchor_aspect_ratios=anchor_aspect_ratios,
