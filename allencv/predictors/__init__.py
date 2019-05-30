@@ -1,0 +1,1 @@
+from allencv.predictors.image_predictor import ImagePredictor
