@@ -10,6 +10,9 @@ from torchvision.models.detection import _utils as det_utils
 from torchvision.ops import boxes as box_ops
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 
+from allennlp.data import Vocabulary
+from allennlp.common import Params
+from allennlp.models.archival import load_archive
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average
@@ -73,7 +76,7 @@ class RPN(Model):
                  batch_size_per_image: int = 256,
                  pre_nms_top_n: int = 6000,
                  post_nms_top_n: int = 300,
-                 nms_thresh: int = 0.7,
+                 nms_thresh: float = 0.7,
                  min_size: int = 0,
                  fpn_post_nms_top_n: int = 1000,
                  fpn_post_nms_per_batch: int = True,
@@ -208,7 +211,11 @@ class RPN(Model):
             out["loss"] = loss_objectness + 10*loss_rpn_box_reg
         return out
 
-    def filter_proposals(self, proposals, objectness, image_shapes, num_anchors_per_level):
+    def filter_proposals(self,
+                         proposals: torch.Tensor,
+                         objectness: List[torch.Tensor],
+                         image_shapes: List[Tuple[float, float]],
+                         num_anchors_per_level: List[int]):
         num_images = proposals.shape[0]
         device = proposals.device
         # do not backprop throught objectness
@@ -255,8 +262,8 @@ class RPN(Model):
                                               output_dict['objectness'],
                                               output_dict['sizes'],
                                               output_dict['num_anchors_per_level'])
-        output_dict['proposals'] = boxes
-        output_dict['proposal_scores'] = scores
+        output_dict['boxes'] = boxes
+        output_dict['scores'] = scores
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
@@ -264,25 +271,32 @@ class RPN(Model):
         return metrics
 
 
-# @Model.register("pretrained")
-# class PretrainedRPN(RPN):
-#
-#     @classmethod
-#     def from_params(cls, params: Params):
-#         model = load_archive(params.pop("archive_file")).model
-#         requires_grad = params.pop("requires_grad")
-#         for p in model.parameters():
-#             p.requires_grad = requires_grad
-#         return model
-#
-#
+@Model.register("pretrained_rpn")
+class PretrainedRPN(RPN):
+
+    @classmethod
+    def from_params(cls, params: Params):
+        model = load_archive(params.pop("archive_file")).model
+        requires_grad = params.pop("requires_grad")
+        for p in model.parameters():
+            p.requires_grad = requires_grad
+        return model
+
+
 @Model.register("detectron_rpn")
 class PretrainedDetectronRPN(RPN):
 
     def __init__(self,
                  anchor_sizes: List[int] = None,
                  anchor_aspect_ratios: List[float] = None,
-                 batch_size_per_image: int = 256):
+                 batch_size_per_image: int = 256,
+                 positive_fraction: float = 0.5,
+                 match_thresh_low: float = 0.3,
+                 match_thresh_high: float = 0.7,
+                 pre_nms_top_n: int = 6000,
+                 post_nms_top_n: int = 300,
+                 nms_thresh: float = 0.7,
+                 min_size: int = 0):
         backbone = ResnetEncoder('resnet50')
         fpn_backbone = FPN(backbone, 256)
         if anchor_sizes is None:
@@ -293,7 +307,9 @@ class PretrainedDetectronRPN(RPN):
         super(PretrainedDetectronRPN, self).__init__(fpn_backbone,
                                                      anchor_aspect_ratios=anchor_aspect_ratios,
                                                      anchor_sizes=anchor_sizes,
-                                                     batch_size_per_image=batch_size_per_image)
+                                                     batch_size_per_image=batch_size_per_image,
+                                                     nms_thresh=nms_thresh,
+                                                     post_nms_top_n=post_nms_top_n)
         frcnn = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
         backbone.load_state_dict(frcnn.backbone.body.state_dict())
         self._rpn_head.load_state_dict(frcnn.rpn.head.state_dict())
