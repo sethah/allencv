@@ -7,7 +7,7 @@ from typing import Dict, Iterable, List
 import logging
 
 from allencv.data.dataset_readers.image_dataset_reader import ImageDatasetReader
-from allencv.data.fields.image_field import ImageField, MaskField
+from allencv.data.fields import ImageField, MaskField
 from allencv.data.transforms.image_transform import ImageTransform
 
 from allennlp.data.instance import Instance
