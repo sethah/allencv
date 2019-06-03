@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 
-from allencv.models.object_detection import FasterRCNN
+from allencv.models.object_detection import RCNN
 from allencv.modules.im2vec_encoders import FlattenEncoder
 
 from allencv.common.testing import AllenCvTestCase
 from allencv.data.dataset_readers import ImageAnnotationReader
 from allencv.predictors import ImagePredictor
-from allencv.models.object_detection import RPN
+from allencv.models.object_detection import RPN, PretrainedDetectronFasterRCNN
+from allencv.models.object_detection.roi_heads import FasterRCNNROIHead
 from allencv.modules.image_encoders import ResnetEncoder, FPN
 
 from allennlp.modules import FeedForward
@@ -39,12 +40,10 @@ class TestFasterRCNN(AllenCvTestCase):
                                   activations=nn.ReLU())
         encoder = FlattenEncoder(fpn_out_channels, pooler_resolution, pooler_resolution,
                                  feedforward)
-        frcnn = FasterRCNN(None, rpn, encoder,
-                           num_labels=5,
-                           decoder_thresh=0.0,
-                           decoder_nms_thresh=0.01,
-                           batch_size_per_image=1000000)
+        # box_head = FasterRCNNROIHead(Vocabulary({'encoder, num_labels=5)
+        # frcnn = RCNN(None, rpn, box_head, num_labels=5)
+        frcnn = PretrainedDetectronFasterRCNN(rpn)
         reader = ImageAnnotationReader()
         predictor = ImagePredictor(frcnn, reader)
         predicted = predictor.predict(AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation" / "images" / "00001.jpg")
-        assert len(predicted['scores']) == len(predicted['labels'])
+        assert len(predicted['box_scores']) == len(predicted['box_labels'])

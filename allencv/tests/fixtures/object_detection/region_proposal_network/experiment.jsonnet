@@ -12,7 +12,8 @@ local AUGMENTATION = [
 local TRAIN_READER = {
         "type": "image_annotation",
         "augmentation": AUGMENTATION,
-        "lazy": true
+        "lazy": true,
+        "exclude_fields": ["box_classes"]
 };
 
 local BASE_ITERATOR = {
