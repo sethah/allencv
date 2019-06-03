@@ -3,6 +3,7 @@ from typing import List, Tuple
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.ops import misc as misc_nn_ops
 
 from allennlp.nn import Activation
 
@@ -19,8 +20,8 @@ class StdConv(nn.Module):
                  dilation: int = 1,
                  dropout: float = 0.1):
         super(StdConv, self).__init__()
-        self.conv = nn.Conv2d(nin, nout, kernel_size, stride=stride, padding=padding, dilation=dilation)
-        self.bn = nn.BatchNorm2d(nout)
+        self.conv = misc_nn_ops.Conv2d(nin, nout, kernel_size, stride=stride, padding=padding, dilation=dilation)
+        self.bn = misc_nn_ops.BatchNorm2d(nout)
         self.drop = nn.Dropout(dropout)
         self.activation = activation
 
