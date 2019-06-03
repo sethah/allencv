@@ -1,6 +1,6 @@
 from overrides import overrides
 import numpy as np
-from typing import Dict, Sequence
+from typing import Dict, Sequence, Tuple
 
 import torch
 
@@ -66,42 +66,3 @@ class ImageField(Field[np.array]):
 
     def __str__(self) -> str:
         return f"ImageField with shape: {self.image.shape}."
-
-
-class MaskField(ImageField):
-    """
-    You may want to use a ``MaskField`` to store an image that should be treated as a label
-    instead of an input.
-    """
-
-    @overrides
-    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
-        np_img = self.image
-        return torch.from_numpy(np_img).squeeze().float()
-
-    def __str__(self) -> str:
-        return f"MaskField with shape: {self.image.shape}."
-
-
-class BoundingBoxField(Field[np.ndarray]):
-
-    def __init__(self, coords: Sequence[float], padding_value: int = 0) -> None:
-        self.coords = coords
-        self.padding_value = padding_value
-
-    @overrides
-    def get_padding_lengths(self) -> Dict[str, int]:
-        return {
-            'coords': 4
-        }
-
-    @overrides
-    def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
-        return torch.tensor(self.coords, dtype=torch.float32)
-
-    @overrides
-    def empty_field(self):  # pylint: disable=no-self-use
-        return BoundingBoxField([0, 0, 0, 0], padding_value=self.padding_value)
-
-    def __str__(self) -> str:
-        return f"BoundingBoxField with coords: {self.coords}"
