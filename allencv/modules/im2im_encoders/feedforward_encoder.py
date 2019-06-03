@@ -37,7 +37,8 @@ class FeedforwardEncoder(Im2ImEncoder):
                  hidden_channels: Union[int, Sequence[int]],
                  activations: str,
                  kernel_sizes: Union[int, Sequence[int]] = 3,
-                 dropout: Union[float, Sequence[float]] = 0.0) -> None:
+                 dropout: Union[float, Sequence[float]] = 0.0,
+                 downsample: bool = False) -> None:
         super(FeedforwardEncoder, self).__init__()
         if not isinstance(hidden_channels, list):
             hidden_channels = [hidden_channels] * num_layers
@@ -57,9 +58,10 @@ class FeedforwardEncoder(Im2ImEncoder):
                                        kernel_size=kernel_sizes[i],
                                        activation=activations[i],
                                        dropout=dropout[i]))
-            conv_layers.append(StdConv(layer_output_channel, layer_output_channel, stride=2,
-                                       kernel_size=kernel_sizes[i],
-                                       activation=activations[i]))
+            if downsample:
+                conv_layers.append(StdConv(layer_output_channel, layer_output_channel, stride=2,
+                                           kernel_size=kernel_sizes[i],
+                                           activation=activations[i]))
         self._conv_layers = nn.ModuleList(conv_layers)
         self._output_channels = hidden_channels[-1]
         self.input_channels = input_channels[0]
