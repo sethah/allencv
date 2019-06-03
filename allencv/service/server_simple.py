@@ -144,6 +144,7 @@ def make_app(predictor: Predictor,
         img = np.array(img).astype(np.uint8)
         prediction = predictor.predict_json({'image': [int(x) for x in img.ravel().tolist()],
                                 'image_shape': img.shape})
+        # print(prediction['boxes'])
         return jsonify(prediction)
 
         # prediction = predictor.predict_json(data)
@@ -246,8 +247,9 @@ function processPrediction(prediction) {
     var i;
     var canvas = document.getElementById("outputCanvas");
     var ctx = canvas.getContext("2d");
-    for (i = 0; i < prediction['decoded'].length; i++) { 
-        var box = prediction['decoded'][i].map(function (x) { 
+    console.log(prediction);
+    for (i = 0; i < prediction['boxes'].length; i++) { 
+        var box = prediction['boxes'][i].map(function (x) { 
           return parseInt(x, 10); 
         });
         ctx.beginPath();
@@ -256,12 +258,14 @@ function processPrediction(prediction) {
         ctx.rect(box[0], box[1], box[2] - box[0], box[3] - box[1]);
         console.log(box[0], box[1], box[2] - box[0], box[3] - box[1]);
         ctx.stroke();
-        ctx.font = "16px Arial";
-        var width = ctx.measureText(prediction['class'][i]).width;
-        ctx.fillStyle="red";
-        ctx.fillRect(box[0], box[1] - 20, width, 20);
-        ctx.fillStyle = "white";
-        ctx.fillText(prediction['class'][i], box[0], box[1]);
+        //if ('class' in prediction) {
+        //    ctx.font = "16px Arial";
+        //    var width = ctx.measureText(prediction['class'][i]).width;
+        //    ctx.fillStyle="red";
+        //    ctx.fillRect(box[0], box[1] - 20, width, 20);
+        //    ctx.fillStyle = "white";
+        //    ctx.fillText(prediction['class'][i], box[0], box[1]);
+        //}
     }
 };
 """
