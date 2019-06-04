@@ -19,6 +19,10 @@ class ImageDatasetReader(DatasetReader):
         How to interpret bounding box coordinates: either xyxy ('pascal_voc') or xywh ('coco')
     """
 
+    KEYPOINT_UNLABELED = 0
+    KEYPOINT_LABELED_INVISIBLE = 1
+    KEYPOINT_LABELED_VISIBLE = 2
+
     def __init__(self,
                  augmentation: List[ImageTransform] = None,
                  bbox_format: str = 'pascal_voc',
@@ -50,18 +54,12 @@ class ImageDatasetReader(DatasetReader):
         for object_kp_coords, object_kp_viz in zip(_kp_coords, _kp_visibility):
             ob_keypoints = []
             for (x, y), viz in zip(object_kp_coords, object_kp_viz):
-                if viz != 2:
+                if viz == ImageDatasetReader.KEYPOINT_LABELED_VISIBLE:
                     # keypoints may now be out of the picture, which means invisible
                     if self._keypoint_is_visible(image_width, image_height, x, y):
-                        viz = 0
+                        viz = ImageDatasetReader.KEYPOINT_UNLABELED
                 ob_keypoints.append([x, y, viz])
-
-            # TODO: remove this hack
-            left = sorted(ob_keypoints, key=lambda x: x[0])[:2]
-            right = sorted(ob_keypoints, key=lambda x: x[0])[2:]
-            kps = [max(left, key=lambda x: x[1]), max(right, key=lambda x: x[1]),
-                   min(left, key=lambda x: x[1]), min(right, key=lambda x: x[1])]
-            all_keypoints.append(kps)
+            all_keypoints.append(ob_keypoints)
         return all_keypoints
 
     def _keypoint_is_visible(self, width: float, height: float, x: float, y: float) -> bool:

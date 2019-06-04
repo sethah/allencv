@@ -68,7 +68,7 @@ class ImageClassificationDirectory(ImageDatasetReader):
 
     @overrides
     def text_to_instance(self, image: np.ndarray, label: str = None) -> Instance:
-        image, _, _, _ = self.augment(image)
+        image, _, _, _, _ = self.augment(image)
         fields: Dict[str, Field] = {}
         fields['image'] = ImageField(image.transpose(2, 0, 1), channels_first=False)
         if label is not None:

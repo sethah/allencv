@@ -49,9 +49,11 @@ class ImageAnnotationReader(ImageDatasetReader):
                  annotation_dir: str = "annotations",
                  annotation_ext: str = ".json",
                  exclude_fields: List[str] = None,
+                 num_keypoints: int = 1,
                  lazy: bool = False) -> None:
         super(ImageAnnotationReader, self).__init__(augmentation, lazy=lazy)
         self._image_dir = image_dir
+        self._num_keypoints = num_keypoints
         self._annotation_dir = annotation_dir
         self._annotation_ext = annotation_ext
         self.lazy = lazy
@@ -75,12 +77,13 @@ class ImageAnnotationReader(ImageDatasetReader):
             else:
                 with open(annotation_file, 'r') as f:
                     annotation = json.load(f)
-                label_classes, label_boxes, label_keypoints = self._parse_annotation(annotation)
+                label_classes, label_boxes, label_keypoints = self._parse_annotation(annotation, self._num_keypoints)
             sample = img.convert('RGB')
             yield self.text_to_instance(np.array(sample), label_boxes, label_classes, label_keypoints)
 
     @staticmethod
-    def _parse_annotation(annotation) -> List[List[float]]:
+    def _parse_annotation(annotation, num_keypoints
+                          ) -> Tuple[List[int], List[List[float]], List[List[Tuple[float, float, float]]]]:
         boxes = []
         classes = []
         keypoints = []
@@ -96,9 +99,7 @@ class ImageAnnotationReader(ImageDatasetReader):
                 continue
             boxes.append([x, y, x2, y2])
             classes.append(att['class'])
-            # kp = att['keypoints']
-            # TODO: this is a hack
-            kp = att.get("keypoints", [0] * 12)
+            kp = att.get("keypoints", [0, 0, 0] * num_keypoints)
             keypoints.append([kp[i:i+3] for i in range(0, len(kp), 3)])
         return classes, boxes, keypoints
 

@@ -2,4 +2,4 @@
   "objects": [
     {"num_keypoints": 4, "keypoints": [25, 323, 2, 609, 323, 2, 477, 119, 2, 157, 119, 2], "bbox": [25, 119, 583, 203], "class": "person"},
     {"num_keypoints": 0, "keypoints": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "bbox": [195, 66, 40, 47], "class": "car"},
-    {"num_keypoints": 0, "keypoints": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "bbox": [335, 230, 55, 104], "class": "bird"}]}
+    {"num_keypoints": 0, "bbox": [335, 230, 55, 104], "class": "bird"}]}
