@@ -12,9 +12,9 @@ class TestRegionProposalNetwork(ModelTestCase):
                           data_directory)
         self.ensure_model_can_train_save_and_load(self.param_file, tolerance=1e-4)
 
-    # def test_pretrained_experiment(self):
-    #     data_directory = AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation"
-    #     self.set_up_model(AllenCvTestCase.FIXTURES_ROOT / 'object_detection' / 'region_proposal_network' / 'pretrained_experiment.jsonnet',
-    #                       data_directory)
-    #     self.ensure_model_can_train_save_and_load(self.param_file, tolerance=1e-4)
+    def test_pretrained_experiment(self):
+        data_directory = AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation"
+        self.set_up_model(AllenCvTestCase.FIXTURES_ROOT / 'object_detection' / 'region_proposal_network' / 'pretrained_experiment.jsonnet',
+                          data_directory)
+        self.ensure_model_can_train_save_and_load(self.param_file, tolerance=1e-4)
 

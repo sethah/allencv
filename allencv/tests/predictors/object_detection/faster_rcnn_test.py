@@ -34,16 +34,8 @@ class TestFasterRCNN(AllenCvTestCase):
                   match_thresh_high=0.001,
                   match_thresh_low=0.0,
                   batch_size_per_image=10000000)
-        pooler_resolution = 7
-        roi_num_features = pooler_resolution * pooler_resolution * fpn_out_channels
-        feedforward = FeedForward(roi_num_features, num_layers=2, hidden_dims=[32, 32],
-                                  activations=nn.ReLU())
-        encoder = FlattenEncoder(fpn_out_channels, pooler_resolution, pooler_resolution,
-                                 feedforward)
-        # box_head = FasterRCNNROIHead(Vocabulary({'encoder, num_labels=5)
-        # frcnn = RCNN(None, rpn, box_head, num_labels=5)
         frcnn = PretrainedDetectronFasterRCNN(rpn)
         reader = ImageAnnotationReader()
         predictor = ImagePredictor(frcnn, reader)
         predicted = predictor.predict(AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation" / "images" / "00001.jpg")
-        assert len(predicted['box_scores']) == len(predicted['box_labels'])
+        assert len(predicted['box_box_scores']) == len(predicted['box_class'])

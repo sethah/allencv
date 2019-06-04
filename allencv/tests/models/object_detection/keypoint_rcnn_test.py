@@ -55,12 +55,7 @@ class TestFasterRCNN(ModelTestCase):
                                   activations=nn.ReLU())
         kp_encoder = FeedforwardEncoder(256, 5, [512, 512], 'relu')
         kp_head = KeypointRCNNROIHead(kp_encoder, 17)
-        for n, p in tmodel.named_parameters():
-            print(n)
-        print('asdf')
         kp_rcnn = RCNN(None, rpn, box_head, roi_keypoint_head=kp_head)
-        for n, p in kp_rcnn.named_parameters():
-            print(n)
         # frcnn = RCNN(None, rpn, box_head, kp_head)
         # boxes = torch.tensor([0, 0, 20, 13, 10, 10, 40, 21]).view(1, 2, 4).float()
         # box_classes = torch.tensor([1, 1.]).view(1, 2, 1)

@@ -1,31 +1,18 @@
-from typing import Dict, List, Tuple, TypeVar
+from typing import List
 
-from collections import OrderedDict
 import logging
-from overrides import overrides
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from allennlp.data import Vocabulary
 from allennlp.modules import FeedForward
 from allennlp.models.model import Model
-from allennlp.nn import InitializerApplicator
-from allennlp.training.metrics import Average
-
-from torchvision.models.detection import _utils as det_utils
-from torchvision.ops import boxes as box_ops
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.ops.poolers import MultiScaleRoIAlign
-from torchvision.models.detection.roi_heads import fastrcnn_loss, keypointrcnn_loss
-from torchvision.ops import misc as misc_nn_ops
 
-from allencv.models.object_detection import utils as object_utils
 from allencv.models.object_detection import RCNN
 from allencv.models.object_detection.roi_heads import FasterRCNNROIHead
-from allencv.modules.im2vec_encoders import Im2VecEncoder, FlattenEncoder
-from allencv.modules.im2im_encoders import Im2ImEncoder
+from allencv.modules.im2vec_encoders import FlattenEncoder
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 

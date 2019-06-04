@@ -29,40 +29,12 @@ class RCNN(Model):
     vocab : ``Vocabulary``
     rpn: ``RPN``
         The region proposal network that detects initial objects.
-    roi_feature_extractor: ``Im2VecEncoder``
-        Maps each region of interest into a vector of features.
-    num_labels: ``int``
-        Number of object classe.
-    label_namespace: ``str``
-        Vocabulary namespace corresponding to labels. By default, we use the "labels" namespace.
+    roi_box_head: ``Model``
+        ROI head for bounding boxes.
+    roi_keypoint_head: ``Model``
+        ROI head for keypoints.
     train_rpn: ``bool``
         Whether to include the RPN's loss in the overall loss.
-    pooler_resolution: ``int``
-        The ROI pooler will output images of this size.
-    pooler_sampling_ratio: ``int``
-        The sampling ratio for ROIAlign.
-    decoder_thresh: ``float``
-        The minimum score for an object proposal to make it in the final output.
-    decoder_nms_thresh: ``float``
-        Proposals that overlap by more than this number will be suppressed into one.
-    decoder_detections_per_image: ``int``
-        Number of object detections to be proposed per image.
-    matcher_high_thresh: ``float``
-        Any anchor boxes that overlap with target boxes with an IOU threshold less than
-        this number will be considered background.
-    matcher_low_thresh: ``float``
-        Any anchor boxes that overlap with target boxes with an IOU threshold greater than
-        this number will be considered foreground.
-    allow_low_quality_matches: ``bool``
-        Produce additional matches for predictions that have only low-quality matches.
-    batch_size_per_image: ``int``
-        The number of examples to include in the loss function for each image in each batch.
-    balance_sampling_fraction: ``float``
-        What fraction of each batch in the loss computation should be positive
-        examples (foreground).
-    class_agnostic_bbox_reg: ``bool``
-        Whether to use a separate network for each class's bounding box refinement or a single
-        network for all classes.
     """
 
     def __init__(self,
@@ -162,7 +134,7 @@ class RCNN(Model):
         if self._keypoint_roi_head is not None:
             kp_out = self._keypoint_roi_head.decode({k.replace("keypoint_", ""): v for k, v in output_dict.items() if k.startswith("keypoint")})
             output_dict.update({"keypoint_" + k: v for k, v in kp_out.items()})
-        output_dict.pop("keypoint_logits")
+            output_dict.pop("keypoint_logits")
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
