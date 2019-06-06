@@ -4,6 +4,7 @@ from typing import Sequence, Union
 import torch
 import torch.nn as nn
 
+from allennlp.common.checks import ConfigurationError
 from allennlp.nn import Activation
 
 from allencv.nn import StdConv
@@ -49,6 +50,15 @@ class FeedforwardEncoder(Im2ImEncoder):
             dropout = [dropout] * num_layers
         if not isinstance(kernel_sizes, list):
             kernel_sizes = [kernel_sizes] * num_layers
+        if len(hidden_channels) != num_layers:
+            raise ConfigurationError("len(hidden_dims) (%d) != num_layers (%d)" %
+                                     (len(hidden_channels), num_layers))
+        if len(activations) != num_layers:
+            raise ConfigurationError("len(activations) (%d) != num_layers (%d)" %
+                                     (len(activations), num_layers))
+        if len(dropout) != num_layers:
+            raise ConfigurationError("len(dropout) (%d) != num_layers (%d)" %
+                                     (len(dropout), num_layers))
         self._activations = activations
         self._kernel_sizes = kernel_sizes
         input_channels = [input_channels] + hidden_channels[:-1]

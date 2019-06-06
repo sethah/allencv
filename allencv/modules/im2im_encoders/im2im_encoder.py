@@ -24,3 +24,4 @@ class Im2ImEncoder(_EncoderBase, Registrable):
         Returns the number of output channels to this encoder.
         """
         raise NotImplementedError
+

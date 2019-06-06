@@ -1,24 +1,13 @@
-import torch
-import torch.nn as nn
-
-from allencv.models.object_detection import RCNN
-from allencv.modules.im2vec_encoders import FlattenEncoder
-
 from allencv.common.testing import AllenCvTestCase
 from allencv.data.dataset_readers import ImageAnnotationReader
 from allencv.predictors import ImagePredictor
 from allencv.models.object_detection import RPN, PretrainedDetectronFasterRCNN
 from allencv.modules.image_encoders import ResnetEncoder, FPN
 
-from allennlp.modules import FeedForward
-
 
 class TestFasterRCNN(AllenCvTestCase):
 
     def test_predictor(self):
-        batch_size = 3
-        im = torch.randn(batch_size, 3, 224, 224)
-        im_sizes = torch.tensor([im.shape[-2:] for _ in range(im.shape[0])]).view(3, -1)
         backbone = ResnetEncoder('resnet18')
         fpn_out_channels = 256
         fpn_backbone = FPN(backbone, fpn_out_channels)

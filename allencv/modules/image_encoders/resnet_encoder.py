@@ -27,7 +27,7 @@ class ResnetEncoder(ImageEncoder):
                  pretrained: bool = False,
                  requires_grad: bool = True,
                  norm_layer: nn.Module = None,
-                 last_layer_maxpool: bool = False) -> None:
+                 do_last_layer_pooling: bool = False) -> None:
         super(ResnetEncoder, self).__init__()
         if isinstance(resnet_model, str):
             resnet_model = ResnetEncoder._pretrained_from_string(resnet_model,
@@ -43,7 +43,10 @@ class ResnetEncoder(ImageEncoder):
         self.layer2 = resnet_model.layer2
         self.layer3 = resnet_model.layer3
         self.layer4 = resnet_model.layer4
+        self.last_layer_pool = resnet_model.avgpool
         self._layers = [self.layer1, self.layer2, self.layer3, self.layer4]
+        if do_last_layer_pooling:
+            self._layers.append(self.last_layer_pool)
 
     def forward(self, image: torch.Tensor) -> Sequence[torch.Tensor]:
         out = image
@@ -52,7 +55,6 @@ class ResnetEncoder(ImageEncoder):
         for stage in self._layers:
             out = stage.forward(out)
             out_images.append(out)
-        # TODO: not returning the first image here?
         return out_images
 
     def _get_test_outputs(self, height: int = 128, width: int = 128) -> Sequence[torch.Tensor]:
