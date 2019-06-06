@@ -21,6 +21,7 @@ def padded_tensor_to_tensor_list(padded_tensor: torch.Tensor) -> List[torch.Tens
         box_list.append(image_boxes[mask])
     return box_list
 
+
 def unpad(padded_tensor: torch.Tensor) -> List[torch.Tensor]:
     box_list = []
     for image_boxes in padded_tensor:

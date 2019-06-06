@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 TensorList = List[torch.Tensor]
 
+
 @Model.register("keypoint_rcnn")
 class KeypointRCNN(RCNN):
 

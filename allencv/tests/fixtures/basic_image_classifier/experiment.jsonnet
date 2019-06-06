@@ -42,7 +42,8 @@ local BASE_ITERATOR = {
        "input_channels": 3,
        "num_layers": 2,
        "hidden_channels": [8, 16],
-       "activations": "relu"
+       "activations": "relu",
+       "downsample": true
     },
     "im2vec_encoder": {
       "type": "flatten",
