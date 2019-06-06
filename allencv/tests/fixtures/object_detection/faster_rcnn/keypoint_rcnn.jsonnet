@@ -12,7 +12,7 @@ local AUGMENTATION = [
 local TRAIN_READER = {
         "type": "image_annotation",
         "augmentation": AUGMENTATION,
-        "keypoint_name": "keypoints",
+        "keypoints": true,
         "lazy": true
 };
 

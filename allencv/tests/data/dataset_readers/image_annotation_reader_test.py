@@ -11,7 +11,7 @@ from allennlp.data.iterators import BasicIterator
 class TestImageAnnotationReader(AllenCvTestCase):
 
     def test_reader_output(self):
-        reader = ImageAnnotationReader(num_keypoints=4, keypoint_name="keypoints")
+        reader = ImageAnnotationReader(num_keypoints=4, keypoints=True)
         instances = reader.read(self.FIXTURES_ROOT / "data" / "image_annotation")
         assert(isinstance(instances, list))
         assert len(instances) == 1

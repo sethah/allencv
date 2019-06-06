@@ -42,6 +42,20 @@ class ImageAnnotationReader(ImageDatasetReader):
     annotation_dir: ``str``, optional, (default='images')
     annotation_ext: ``str``, optional
         File extension for the annotation images.
+    bbox_name: ``str``
+        Name of bounding box field in the annotations.
+    bbox_class_name: ``str``
+        Name of bounding box label field in the annotations.
+    keypoint_name: ``str``
+        Name of keypoint field in the annotations.
+    bbox: ``str``
+        Include bounding boxes in the output instance.
+    bbox_class: ``str``
+        Include bounding box class labels in the output instance.
+    keypoints: ``str``
+        Include keypoints in the output instance.
+    num_keypoints: ``int``
+        Number of keypoints in each bounding box.
     """
     def __init__(self,
                  augmentation: List[ImageTransform] = None,
@@ -49,9 +63,11 @@ class ImageAnnotationReader(ImageDatasetReader):
                  annotation_dir: str = "annotations",
                  annotation_ext: str = ".json",
                  bbox_name: str = 'bbox',
-                 class_name: str = 'class',
-                 keypoint_name: str = None,
-                 exclude_fields: List[str] = None,
+                 bbox_class_name: str = 'class',
+                 keypoint_name: str = 'keypoints',
+                 bbox: bool = True,
+                 bbox_class: bool = True,
+                 keypoints: bool = False,
                  num_keypoints: int = 1,
                  lazy: bool = False) -> None:
         super(ImageAnnotationReader, self).__init__(augmentation, lazy=lazy)
@@ -60,13 +76,17 @@ class ImageAnnotationReader(ImageDatasetReader):
         self._annotation_dir = annotation_dir
         self._annotation_ext = annotation_ext
         self._bbox_name = bbox_name
-        self._class_name = class_name
+        self._bbox_class_name = bbox_class_name
         self._keypoint_name = keypoint_name
         self.lazy = lazy
-        if exclude_fields is None:
-            self._exclude_fields = []
-        else:
-            self._exclude_fields = exclude_fields
+        include_fields = set()
+        if bbox:
+            include_fields.add(self._bbox_name)
+        if keypoints:
+            include_fields.add(self._keypoint_name)
+        if bbox_class:
+            include_fields.add(self._bbox_class_name)
+        self._include_fields = include_fields
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         file_path = Path(file_path)
@@ -77,9 +97,7 @@ class ImageAnnotationReader(ImageDatasetReader):
             annotation_ext = self._annotation_ext
             annotation_file = file_path / self._annotation_dir / (img_name + annotation_ext)
             if not annotation_file.exists():
-                annotations = {self._keypoint_name: None,
-                               self._class_name: None,
-                               self._bbox_name: None}
+                annotations = {}
             else:
                 with open(annotation_file, 'r') as f:
                     annotation = json.load(f)
@@ -87,7 +105,7 @@ class ImageAnnotationReader(ImageDatasetReader):
             sample = img.convert('RGB')
             yield self.text_to_instance(np.array(sample),
                                         annotations.get(self._bbox_name, []),
-                                        annotations.get(self._class_name, []),
+                                        annotations.get(self._bbox_class_name, []),
                                         annotations.get(self._keypoint_name, []))
 
     def _parse_annotation(self, annotation, num_keypoints: int) -> Dict[str, List]:
@@ -109,12 +127,9 @@ class ImageAnnotationReader(ImageDatasetReader):
             kp = att.get("keypoints", [0, 0, 0] * num_keypoints)
             keypoints.append([kp[i:i+3] for i in range(0, len(kp), 3)])
         out = {}
-        if self._class_name is not None:
-            out[self._class_name] = classes
-        if self._bbox_name is not None:
-            out[self._bbox_name] = boxes
-        if self._keypoint_name is not None:
-            out[self._keypoint_name] = keypoints
+        out[self._bbox_class_name] = classes
+        out[self._bbox_name] = boxes
+        out[self._keypoint_name] = keypoints
         return out
 
     @overrides
@@ -123,26 +138,27 @@ class ImageAnnotationReader(ImageDatasetReader):
                          label_box: List[List[float]] = list(),
                          label_class: List[str] = list(),
                          keypoints: List[List[Tuple[float, float, float]]] = list()) -> Instance:
-        if label_box:
+        if self._keypoint_name in self._include_fields:
+            # protect against some augmentations not supporting keypoints
             img, _, label_box, label_class, keypoints = self.augment(image,
-                                             boxes=[np.array(b) for b in label_box],
-                                             category_id=label_class,
-                                             keypoints=keypoints)
+                                                 boxes=[np.array(b) for b in label_box],
+                                                 category_id=label_class,
+                                                 keypoints=keypoints)
         else:
-            img, _, _, _, _ = self.augment(image)
+            img, _, label_box, label_class, _ = self.augment(image,
+                                                                 boxes=[np.array(b) for b in label_box],
+                                                                 category_id=label_class)
         h, w, c = img.shape
         fields: Dict[str, Field] = {}
         fields['image'] = ImageField(img.transpose(2, 0, 1), channels_first=False)
         fields['image_sizes'] = ArrayField(np.array([w, h]))
-        if label_box:
+        if self._bbox_name in self._include_fields and len(label_box) > 0:
             box_fields = [BoundingBoxField(x) for x in label_box]
-            if 'boxes' not in self._exclude_fields:
-                fields['boxes'] = ListField(box_fields)
-            if 'box_classes' not in self._exclude_fields:
-                fields['box_classes'] = ListField([LabelField(idx) for idx in label_class])
-        if keypoints:
-            if 'keypoint_positions' not in self._exclude_fields:
-                fields['keypoint_positions'] = ListField([KeypointField(kp) for kp
-                                                          in keypoints])
+            fields['boxes'] = ListField(box_fields)
+        if self._bbox_class_name in self._include_fields and len(label_class) > 0:
+            fields['box_classes'] = ListField([LabelField(idx) for idx in label_class])
+        if self._keypoint_name in self._include_fields and len(keypoints) > 0:
+            fields['keypoint_positions'] = ListField([KeypointField(kp) for kp
+                                                      in keypoints])
         return Instance(fields)
 
