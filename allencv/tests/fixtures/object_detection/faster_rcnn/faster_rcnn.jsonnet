@@ -24,6 +24,7 @@ local RPN = {
     "type": "detectron_rpn",
     "anchor_sizes": [[32], [64], [128], [256], [512]],
     "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]],
+    "requires_grad": false
 };
 
 {
@@ -34,23 +35,24 @@ local RPN = {
   "model": {
     "type": "faster_rcnn",
     "rpn": RPN,
-    "train_rpn": true,
-    "matcher_high_thresh": 0.001,
-    "matcher_low_thresh": 0.0,
-    "batch_size_per_image": 10000000,
-    "roi_feature_extractor": {
-        "type": "flatten",
-        "input_channels": 256,
-        "input_height": 7,
-        "input_width": 7,
-        "feedforward": {
-            "input_dim": 7*7*256,
-            "num_layers": 2,
-            "hidden_dims": [256, 256],
-            "activations": 'relu'
+    "train_rpn": false,
+    "roi_box_head": {
+        "matcher_high_thresh": 0.0001,
+        "matcher_low_thresh": 0.0,
+        "batch_size_per_image": 10000000,
+        "feature_extractor": {
+            "type": "flatten",
+            "input_channels": 256,
+            "input_height": 7,
+            "input_width": 7,
+            "feedforward": {
+                "input_dim": 7*7*256,
+                "num_layers": 2,
+                "hidden_dims": [256, 256],
+                "activations": 'relu'
+            }
         }
     },
-    "num_labels": 4
   },
   "iterator": BASE_ITERATOR,
   "trainer": {

@@ -1,25 +1,24 @@
 import logging
-from typing import Dict, List
+from typing import Dict, List, Tuple, TypeVar
+
+from overrides import overrides
 
 import torch
-import torch.nn as nn
+
 from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.nn import InitializerApplicator
 from allennlp.training.metrics import Average
-from overrides import overrides
-from torchvision.models.detection.roi_heads import fastrcnn_loss, keypointrcnn_loss
-from torchvision.ops import misc as misc_nn_ops
 
 from allencv.models.object_detection import utils as object_utils
-from allencv.modules.object_detection.roi_heads import FasterRCNNROIHead, KeypointRCNNROIHead
+from allencv.modules.im2vec_encoders import Im2VecEncoder, FlattenEncoder
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 TensorList = List[torch.Tensor]
 
 
-@Model.register("faster_rcnn2")
+@Model.register("faster_rcnn")
 class RCNN(Model):
     """
     A Faster-RCNN model first detects objects in an image using a ``RegionProposalNetwork``.
@@ -41,44 +40,15 @@ class RCNN(Model):
     def __init__(self,
                  vocab: Vocabulary,
                  rpn: Model,
-                 roi_box_head: FasterRCNNROIHead,
-                 roi_keypoint_head: KeypointRCNNROIHead = None,
-                 num_keypoints: int = None,
+                 roi_box_head: Model,
+                 roi_keypoint_head: Model = None,
                  train_rpn: bool = False,
-                 num_labels: int = None,
-                 label_namespace: str = "labels",
-                 class_agnostic_bbox_reg: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator()) -> None:
         super(RCNN, self).__init__(vocab)
         self._train_rpn = train_rpn
-        if num_labels is not None:
-            self._num_labels = num_labels
-        else:
-            self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
         self.rpn = rpn
         self._box_roi_head = roi_box_head
         self._keypoint_roi_head = roi_keypoint_head
-        self._keypoint_upscale = 2
-
-        num_bbox_reg_classes = 2 if class_agnostic_bbox_reg else self._num_labels
-        representation_size = roi_box_head.get_output_dim()
-        self._box_classifier = nn.Linear(representation_size, self._num_labels)
-        self._bbox_pred = nn.Linear(representation_size, num_bbox_reg_classes * 4)
-
-        if self._keypoint_roi_head:
-            deconv_kernel = 4
-            self._kp_up_scale = 2
-            self.kps_score_lowres = misc_nn_ops.ConvTranspose2d(
-                self._keypoint_roi_head.get_output_channels(),
-                num_keypoints,
-                deconv_kernel,
-                stride=2,
-                padding=deconv_kernel // 2 - 1,
-            )
-            nn.init.kaiming_normal_(
-                self.kps_score_lowres.weight, mode="fan_out", nonlinearity="relu"
-            )
-            nn.init.constant_(self.kps_score_lowres.bias, 0)
 
         self._loss_meters = {'roi_cls_loss': Average(), 'roi_reg_loss': Average(),
                              'rpn_cls_loss': Average(), 'rpn_reg_loss': Average()}
@@ -115,14 +85,10 @@ class RCNN(Model):
         # # (b, num_proposal_regions_in_batch, 14, 14)
         im_sizes = [(x[1].item(), x[0].item()) for x in image_sizes]
         out = {'proposals': proposals, 'image_sizes': im_sizes}
-        box_features = self._box_roi_head.forward(features, proposals, image_sizes)
-        box_regression = self._bbox_pred.forward(box_features)
-        class_logits = self._box_classifier.forward(box_features)
-        # not necessary unless using keypoint head
-        box_proposals, box_scores, box_class_preds = \
-            self._box_roi_head.postprocess_detections(class_logits, box_regression,
-                                                       proposals, im_sizes)
-        loss = 0.
+        box_out = self._box_roi_head.forward(features, proposals, im_sizes,
+                                     class_labels, regression_targets)
+        box_out = self._box_roi_head.decode(box_out)
+
         if self._keypoint_roi_head is not None:
             if keypoint_positions is not None:
                 # during training, only focus on positive boxes
@@ -135,35 +101,26 @@ class RCNN(Model):
                     keypoint_indices.append(matched_indices[img_id][positive_indices])
             else:
                 keypoint_indices = None
-                keypoint_proposals = object_utils.unpad(boxes)
-            keypoint_features = self._keypoint_roi_head.forward(features, keypoint_proposals,
-                                                                im_sizes)
-            keypoint_logits = self.kps_score_lowres.forward(keypoint_features)
-            keypoint_logits = misc_nn_ops.interpolate(
-                keypoint_logits, scale_factor=self._keypoint_upscale, mode="bilinear",
-                align_corners=False)
-            out['keypoint_logits'] = keypoint_logits
-            if keypoint_positions is not None:
-                keypoint_loss = keypointrcnn_loss(keypoint_logits, keypoint_proposals,
-                    keypoint_positions, keypoint_indices)
-                out['keypoint_loss'] = keypoint_loss
-                loss += keypoint_loss
-                self._loss_meters['keypoint_loss'](out['keypoint_loss'].item())
+                keypoint_proposals = object_utils.unpad(box_out['box_predictions'])
+            keypoint_out = self._keypoint_roi_head.forward(features, keypoint_proposals, im_sizes,
+                                         keypoint_positions, keypoint_indices)
+            for k, v in keypoint_out.items():
+                out["keypoint_" + k] = v
 
-        out['box_proposals'] = box_proposals
-        out['box_scores'] = box_scores
-        out['box_labels'] = box_class_preds
+        for k, v in box_out.items():
+            out["box_" + k] = v
 
         if boxes is not None:
             rpn_classifier_loss = rpn_out['loss_objectness']
             rpn_regression_loss = rpn_out['loss_rpn_box_reg']
-            classifier_loss, regression_loss = fastrcnn_loss(
-                class_logits, box_regression, class_labels, regression_targets)
-            loss += 1. * classifier_loss + regression_loss
-            # print(loss)
+            classifier_loss = box_out['classifier_loss']
+            regression_loss = box_out['regression_loss']
+            loss = 1. * classifier_loss + regression_loss
+            if keypoint_positions is not None:
+                loss += 0.1 * out['keypoint_loss']
+                self._loss_meters['keypoint_loss'](out['keypoint_loss'].item())
             if self._train_rpn:
                 loss += rpn_classifier_loss + rpn_regression_loss
-            # print(loss)
             out['loss'] = loss
             self._loss_meters['rpn_cls_loss'](rpn_classifier_loss.item())
             self._loss_meters['rpn_reg_loss'](rpn_regression_loss.item())
@@ -175,12 +132,9 @@ class RCNN(Model):
     def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         output_dict.pop("proposals")
         if self._keypoint_roi_head is not None:
-            kp_logits = output_dict['keypoint_logits']
-            box_proposals = output_dict['box_proposals']
-            kp_proposals, kp_scores = self._keypoint_roi_head.postprocess_detections(kp_logits,
-                                                                                     box_proposals)
-            output_dict['keypoint_proposals'] = kp_proposals
-            output_dict['keypoint_scores'] = kp_scores
+            kp_out = self._keypoint_roi_head.decode({k.replace("keypoint_", ""): v for k, v in output_dict.items() if k.startswith("keypoint")})
+            output_dict.update({"keypoint_" + k: v for k, v in kp_out.items()})
+            output_dict.pop("keypoint_logits")
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

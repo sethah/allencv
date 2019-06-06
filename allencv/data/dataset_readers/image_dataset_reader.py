@@ -56,7 +56,7 @@ class ImageDatasetReader(DatasetReader):
             for (x, y), viz in zip(object_kp_coords, object_kp_viz):
                 if viz == ImageDatasetReader.KEYPOINT_LABELED_VISIBLE:
                     # keypoints may now be out of the picture, which means invisible
-                    if self._keypoint_is_visible(image_width, image_height, x, y):
+                    if not self._keypoint_is_visible(image_width, image_height, x, y):
                         viz = ImageDatasetReader.KEYPOINT_UNLABELED
                 ob_keypoints.append([x, y, viz])
             all_keypoints.append(ob_keypoints)

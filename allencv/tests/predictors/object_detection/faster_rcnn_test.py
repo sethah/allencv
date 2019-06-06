@@ -8,7 +8,6 @@ from allencv.common.testing import AllenCvTestCase
 from allencv.data.dataset_readers import ImageAnnotationReader
 from allencv.predictors import ImagePredictor
 from allencv.models.object_detection import RPN, PretrainedDetectronFasterRCNN
-from allencv.models.object_detection.roi_heads import FasterRCNNROIHead
 from allencv.modules.image_encoders import ResnetEncoder, FPN
 
 from allennlp.modules import FeedForward
@@ -38,4 +37,4 @@ class TestFasterRCNN(AllenCvTestCase):
         reader = ImageAnnotationReader()
         predictor = ImagePredictor(frcnn, reader)
         predicted = predictor.predict(AllenCvTestCase.FIXTURES_ROOT / "data" / "image_annotation" / "images" / "00001.jpg")
-        assert len(predicted['box_box_scores']) == len(predicted['box_class'])
+        assert len(predicted['box_scores']) == len(predicted['box_labels'])

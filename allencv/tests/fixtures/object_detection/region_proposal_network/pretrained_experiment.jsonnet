@@ -12,7 +12,8 @@ local AUGMENTATION = [
 local TRAIN_READER = {
         "type": "image_annotation",
         "augmentation": AUGMENTATION,
-        "lazy": true
+        "lazy": true,
+        "exclude_fields": ["box_classes"]
 };
 
 local BASE_ITERATOR = {
@@ -29,6 +30,9 @@ local BASE_ITERATOR = {
     "type": "detectron_rpn",
     "anchor_sizes": [[32], [64], [128], [256], [512]],
     "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]],
+    "match_thresh_high": 0.001,
+    "match_thresh_low": 0.0,
+    "batch_size_per_image": 10000000
   },
   "iterator": BASE_ITERATOR,
   "trainer": {

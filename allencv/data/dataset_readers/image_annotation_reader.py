@@ -48,6 +48,9 @@ class ImageAnnotationReader(ImageDatasetReader):
                  image_dir: str = "images",
                  annotation_dir: str = "annotations",
                  annotation_ext: str = ".json",
+                 bbox_name: str = 'bbox',
+                 class_name: str = 'class',
+                 keypoint_name: str = None,
                  exclude_fields: List[str] = None,
                  num_keypoints: int = 1,
                  lazy: bool = False) -> None:
@@ -56,6 +59,9 @@ class ImageAnnotationReader(ImageDatasetReader):
         self._num_keypoints = num_keypoints
         self._annotation_dir = annotation_dir
         self._annotation_ext = annotation_ext
+        self._bbox_name = bbox_name
+        self._class_name = class_name
+        self._keypoint_name = keypoint_name
         self.lazy = lazy
         if exclude_fields is None:
             self._exclude_fields = []
@@ -71,19 +77,20 @@ class ImageAnnotationReader(ImageDatasetReader):
             annotation_ext = self._annotation_ext
             annotation_file = file_path / self._annotation_dir / (img_name + annotation_ext)
             if not annotation_file.exists():
-                label_boxes = None
-                label_classes = None
-                label_keypoints = None
+                annotations = {self._keypoint_name: None,
+                               self._class_name: None,
+                               self._bbox_name: None}
             else:
                 with open(annotation_file, 'r') as f:
                     annotation = json.load(f)
-                label_classes, label_boxes, label_keypoints = self._parse_annotation(annotation, self._num_keypoints)
+                annotations = self._parse_annotation(annotation, self._num_keypoints)
             sample = img.convert('RGB')
-            yield self.text_to_instance(np.array(sample), label_boxes, label_classes, label_keypoints)
+            yield self.text_to_instance(np.array(sample),
+                                        annotations.get(self._bbox_name, []),
+                                        annotations.get(self._class_name, []),
+                                        annotations.get(self._keypoint_name, []))
 
-    @staticmethod
-    def _parse_annotation(annotation, num_keypoints
-                          ) -> Tuple[List[int], List[List[float]], List[List[Tuple[float, float, float]]]]:
+    def _parse_annotation(self, annotation, num_keypoints: int) -> Dict[str, List]:
         boxes = []
         classes = []
         keypoints = []
@@ -101,15 +108,22 @@ class ImageAnnotationReader(ImageDatasetReader):
             classes.append(att['class'])
             kp = att.get("keypoints", [0, 0, 0] * num_keypoints)
             keypoints.append([kp[i:i+3] for i in range(0, len(kp), 3)])
-        return classes, boxes, keypoints
+        out = {}
+        if self._class_name is not None:
+            out[self._class_name] = classes
+        if self._bbox_name is not None:
+            out[self._bbox_name] = boxes
+        if self._keypoint_name is not None:
+            out[self._keypoint_name] = keypoints
+        return out
 
     @overrides
     def text_to_instance(self,
                          image: np.ndarray,
-                         label_box: List[List[float]] = None,
-                         label_class: List[str] = None,
-                         keypoints: List[List[Tuple[float, float, float]]] = None) -> Instance:
-        if label_box is not None:
+                         label_box: List[List[float]] = list(),
+                         label_class: List[str] = list(),
+                         keypoints: List[List[Tuple[float, float, float]]] = list()) -> Instance:
+        if label_box:
             img, _, label_box, label_class, keypoints = self.augment(image,
                                              boxes=[np.array(b) for b in label_box],
                                              category_id=label_class,
@@ -120,13 +134,13 @@ class ImageAnnotationReader(ImageDatasetReader):
         fields: Dict[str, Field] = {}
         fields['image'] = ImageField(img.transpose(2, 0, 1), channels_first=False)
         fields['image_sizes'] = ArrayField(np.array([w, h]))
-        if label_box is not None:
+        if label_box:
             box_fields = [BoundingBoxField(x) for x in label_box]
             if 'boxes' not in self._exclude_fields:
                 fields['boxes'] = ListField(box_fields)
             if 'box_classes' not in self._exclude_fields:
                 fields['box_classes'] = ListField([LabelField(idx) for idx in label_class])
-        if keypoints is not None:
+        if keypoints:
             if 'keypoint_positions' not in self._exclude_fields:
                 fields['keypoint_positions'] = ListField([KeypointField(kp) for kp
                                                           in keypoints])

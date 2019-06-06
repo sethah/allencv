@@ -2,7 +2,7 @@ local NUM_EPOCHS = 1;
 
 local AUGMENTATION = [
             {
-                "type": "resize",
+                "type": "keypoint_resize",
                 "height": 512,
                 "width": 512
             }, {
@@ -24,6 +24,7 @@ local RPN = {
     "type": "detectron_rpn",
     "anchor_sizes": [[32], [64], [128], [256], [512]],
     "anchor_aspect_ratios": [[0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0], [0.5, 1.0, 2.0]],
+    "requires_grad": false
 };
 
 {
@@ -34,10 +35,10 @@ local RPN = {
   "model": {
     "type": "pretrained_detectron_faster_rcnn",
     "rpn": RPN,
-    "train_rpn": true,
-    "matcher_high_thresh": 0.001,
+    "matcher_high_thresh": 0.0001,
     "matcher_low_thresh": 0.0,
     "batch_size_per_image": 10000000,
+    "train_rpn": false,
   },
   "iterator": BASE_ITERATOR,
   "trainer": {

@@ -296,7 +296,8 @@ class PretrainedDetectronRPN(RPN):
                  pre_nms_top_n: int = 6000,
                  post_nms_top_n: int = 300,
                  nms_thresh: float = 0.7,
-                 min_size: int = 0):
+                 min_size: int = 0,
+                 requires_grad: bool = True):
         backbone = ResnetEncoder('resnet50')
         fpn_backbone = FPN(backbone, 256)
         if anchor_sizes is None:
@@ -309,7 +310,12 @@ class PretrainedDetectronRPN(RPN):
                                                      anchor_sizes=anchor_sizes,
                                                      batch_size_per_image=batch_size_per_image,
                                                      nms_thresh=nms_thresh,
-                                                     post_nms_top_n=post_nms_top_n)
+                                                     post_nms_top_n=post_nms_top_n,
+                                                     pre_nms_top_n=pre_nms_top_n,
+                                                     match_thresh_low=match_thresh_low,
+                                                     match_thresh_high=match_thresh_high,
+                                                     positive_fraction=positive_fraction,
+                                                     min_size=min_size)
         frcnn = fasterrcnn_resnet50_fpn(pretrained=True, pretrained_backbone=True)
         backbone.load_state_dict(frcnn.backbone.body.state_dict())
         self._rpn_head.load_state_dict(frcnn.rpn.head.state_dict())
@@ -317,3 +323,5 @@ class PretrainedDetectronRPN(RPN):
         # pylint: disable = protected-access
         fpn_backbone._convert_layers.load_state_dict(frcnn.backbone.fpn.inner_blocks.state_dict())
         fpn_backbone._combine_layers.load_state_dict(frcnn.backbone.fpn.layer_blocks.state_dict())
+        for p in self.parameters():
+            p.requires_grad = requires_grad

@@ -1,23 +1,19 @@
-from typing import Dict, List, Tuple
+from typing import List, Tuple
 
 from collections import OrderedDict
 import logging
-from overrides import overrides
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from allennlp.data import Vocabulary
-from allennlp.models.model import Model
+from allennlp.common import FromParams
 
 from torchvision.models.detection import _utils as det_utils
 from torchvision.ops import boxes as box_ops
 from torchvision.ops.poolers import MultiScaleRoIAlign
-from torchvision.models.detection.roi_heads import fastrcnn_loss, keypointrcnn_loss, keypointrcnn_inference
-from torchvision.ops import misc as misc_nn_ops
+from torchvision.models.detection.roi_heads import keypointrcnn_inference
 
-from allencv.models.object_detection import utils as object_utils
 from allencv.modules.im2vec_encoders import Im2VecEncoder
 from allencv.modules.im2im_encoders import Im2ImEncoder
 
@@ -26,21 +22,13 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 TensorList = List[torch.Tensor]
 
 
-@Model.register("faster_rcnn_roi_box")
-class FasterRCNNROIHead(Model):
+class FasterRCNNROIHead(nn.Module, FromParams):
     """
     A Faster-RCNN model first detects objects in an image using a ``RegionProposalNetwork``.
     Faster-RCNN further separates those objects into classes and refines their bounding boxes.
 
     Parameters
     ----------
-    vocab : ``Vocabulary``
-    feature_extractor: ``Im2VecEncoder``
-        Maps each region of interest into a vector of features.
-    num_labels: ``int``
-        Number of object classe.
-    label_namespace: ``str``
-        Vocabulary namespace corresponding to labels. By default, we use the "labels" namespace.
     pooler_resolution: ``int``
         The ROI pooler will output images of this size.
     pooler_sampling_ratio: ``int``
@@ -64,18 +52,12 @@ class FasterRCNNROIHead(Model):
     balance_sampling_fraction: ``float``
         What fraction of each batch in the loss computation should be positive
         examples (foreground).
-    class_agnostic_bbox_reg: ``bool``
-        Whether to use a separate network for each class's bounding box refinement or a single
-        network for all classes.
     """
 
     def __init__(self,
-                 vocab: Vocabulary,
                  feature_extractor: Im2VecEncoder,
                  pooler_resolution: int = 7,
                  pooler_sampling_ratio: int = 2,
-                 num_labels: int = None,
-                 label_namespace: str = "labels",
                  decoder_thresh: float = 0.1,
                  decoder_nms_thresh: float = 0.5,
                  decoder_detections_per_image: int = 100,
@@ -83,22 +65,13 @@ class FasterRCNNROIHead(Model):
                  matcher_low_thresh: float = 0.5,
                  allow_low_quality_matches: bool = True,
                  batch_size_per_image: int = 256,
-                 balance_sampling_fraction: float = 0.25,
-                 class_agnostic_bbox_reg: bool = False):
-        super(FasterRCNNROIHead, self).__init__(vocab)
-        if num_labels is not None:
-            self._num_labels = num_labels
-        else:
-            self._num_labels = vocab.get_vocab_size(namespace=label_namespace)
+                 balance_sampling_fraction: float = 0.25):
+        super(FasterRCNNROIHead, self).__init__()
         self.roi_pool = MultiScaleRoIAlign(
             featmap_names=[0, 1, 2, 3],
             output_size=pooler_resolution,
             sampling_ratio=pooler_sampling_ratio)
         self.feature_extractor = feature_extractor
-        num_bbox_reg_classes = 2 if class_agnostic_bbox_reg else self._num_labels
-        representation_size = self.feature_extractor.get_output_dim()
-        self.cls_score = nn.Linear(representation_size, self._num_labels)
-        self.bbox_pred = nn.Linear(representation_size, num_bbox_reg_classes * 4)
         self.box_coder = det_utils.BoxCoder(weights=(10., 10., 5., 5.))
         self.decoder_thresh = decoder_thresh
         self.decoder_nms_thresh = decoder_nms_thresh
@@ -111,50 +84,17 @@ class FasterRCNNROIHead(Model):
             batch_size_per_image,
             positive_fraction=balance_sampling_fraction)
 
+    def get_output_dim(self):
+        return self.feature_extractor.get_output_dim()
+
     def forward(self,
                 features: List[torch.Tensor],
                 proposals: List[torch.Tensor],
-                image_shapes: List[Tuple[int, int]],
-                class_labels: List[torch.Tensor] = None,
-                regression_targets: List[torch.Tensor] = None) -> Dict[str, torch.Tensor]:
+                image_shapes: List[Tuple[int, int]]) -> torch.Tensor:
         _features = OrderedDict([(i, f) for i, f in enumerate(features)])
         pooled = self.roi_pool(_features, proposals, image_shapes)
         box_features = self.feature_extractor.forward(pooled)
-        class_logits = self.cls_score(box_features)
-        box_regression = self.bbox_pred(box_features)
-        out = {'regression': box_regression, 'class_logits': class_logits,
-               'proposals': proposals, 'image_sizes': image_shapes}
-        if class_labels is not None:
-            classifier_loss, regression_loss = fastrcnn_loss(
-                class_logits, box_regression, class_labels, regression_targets)
-            out.update({'classifier_loss': classifier_loss, 'regression_loss': regression_loss})
-        return out
-
-    @overrides
-    def decode(self, output_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        # TODO: provide split class and regression tensors?
-        boxes, scores, labels = self._postprocess_detections(
-            output_dict['class_logits'],
-            output_dict['regression'],
-            output_dict['proposals'],
-            output_dict['image_sizes'])
-        output_dict = {}
-        output_dict['box_scores'] = object_utils.pad_tensors(scores)
-        output_dict['class_predictions'] = object_utils.pad_tensors(labels)
-        output_dict['box_predictions'] = object_utils.pad_tensors(boxes)
-        all_predictions = output_dict['class_predictions']
-        all_predictions = all_predictions.cpu().data.numpy()
-        if all_predictions.ndim == 2:
-            predictions_list = [all_predictions[i] for i in range(all_predictions.shape[0])]
-        else:
-            predictions_list = [all_predictions]
-        if self.vocab is not None:
-            idx2token = self.vocab.get_index_to_token_vocabulary(namespace="labels")
-            all_classes = []
-            for predictions in predictions_list:
-                all_classes.append([idx2token.get(x, 'background') for x in predictions])
-            output_dict['class'] = all_classes
-        return output_dict
+        return box_features
 
     def _match_and_sample(self,
                           proposals: TensorList,
@@ -214,7 +154,7 @@ class FasterRCNNROIHead(Model):
             labels.append(labels_in_image)
         return matched_idxs, labels
 
-    def _postprocess_detections(self,
+    def postprocess_detections(self,
                                 class_logits: torch.Tensor,
                                 box_regression: torch.Tensor,
                                 proposals: TensorList,
@@ -268,67 +208,39 @@ class FasterRCNNROIHead(Model):
         return all_boxes, all_scores, all_labels
 
 
-@Model.register("faster_rcnn_roi_keypoint")
-class KeypointRCNNROIHead(Model):
+class KeypointRCNNROIHead(nn.Module, FromParams):
 
     def __init__(self,
                  feature_extractor: Im2ImEncoder,
-                 num_keypoints: int,
                  pooler_resolution: int = 14,
                  pooler_sampling_ratio: int = 2):
-        super(KeypointRCNNROIHead, self).__init__(None)
+        super(KeypointRCNNROIHead, self).__init__()
         self.feature_extractor = feature_extractor
-
-        input_features = feature_extractor.get_output_channels()
-        deconv_kernel = 4
-        self.kps_score_lowres = misc_nn_ops.ConvTranspose2d(
-            input_features,
-            num_keypoints,
-            deconv_kernel,
-            stride=2,
-            padding=deconv_kernel // 2 - 1,
-        )
-        nn.init.kaiming_normal_(
-            self.kps_score_lowres.weight, mode="fan_out", nonlinearity="relu"
-        )
-        nn.init.constant_(self.kps_score_lowres.bias, 0)
-        self.up_scale = 2
-        self.out_channels = num_keypoints
 
         self.roi_pool = MultiScaleRoIAlign(
             featmap_names=[0, 1, 2, 3],
             output_size=pooler_resolution,
             sampling_ratio=pooler_sampling_ratio)
 
+    def get_output_channels(self) -> int:
+        return self.feature_extractor.get_output_channels()
+
     def forward(self,
                 features: List[torch.Tensor],
                 proposals: List[torch.Tensor],
-                image_shapes: List[Tuple[int, int]],
-                keypoint_positions: List[torch.Tensor],
-                keypoint_indices: List[torch.Tensor]) -> Dict[str, torch.Tensor]:
+                image_shapes: List[Tuple[int, int]]) -> torch.Tensor:
         _features = OrderedDict([(i, f) for i, f in enumerate(features)])
         keypoint_features = self.roi_pool(_features, proposals, image_shapes)
         keypoint_features = self.feature_extractor.forward(keypoint_features)
-        # (N x K x H x W)
-        keypoint_logits = self.kps_score_lowres(keypoint_features)
-        keypoint_logits = misc_nn_ops.interpolate(
-            keypoint_logits, scale_factor=self.up_scale, mode="bilinear", align_corners=False
-        )
-        out = {'logits': keypoint_logits, 'proposals': proposals}
-        if keypoint_positions is not None:
-            keypoint_loss = keypointrcnn_loss(
-                keypoint_logits, proposals,
-                keypoint_positions, keypoint_indices)
-            out.update({'loss': keypoint_loss})
-        return out
+        return keypoint_features
 
-    @overrides
-    def decode(self, output_dict: Dict[str, torch.Tensor]):
-        keypoints_probs, kp_scores = keypointrcnn_inference(output_dict['logits'],
-                                                            output_dict['proposals'])
+    def postprocess_detections(self,
+                               logits: torch.Tensor,
+                               proposals: List[torch.Tensor]) -> Tuple[TensorList, TensorList]:
+        keypoints_probs, kp_scores = keypointrcnn_inference(logits, proposals)
         proposals = []
         scores = []
         for keypoint_prob, kps in zip(keypoints_probs, kp_scores):
             proposals.append(keypoint_prob)
             scores.append(kps)
-        return {'proposals': proposals, 'scores': scores}
+        return proposals, scores
