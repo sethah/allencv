@@ -110,13 +110,9 @@ class RPN(Model):
         self.anchor_generator = AnchorGenerator(anchor_sizes, anchor_aspect_ratios)
         self.num_anchors = self.anchor_generator.num_anchors_per_location()[0]
 
-        # initializer(self)
-
-        # TODO: use initializer?
-        # for l in [self.conv, self.cls_logits, self.bbox_pred]:
-        #     torch.nn.init.normal_(l.weight, std=0.01)
-        #     torch.nn.init.constant_(l.bias, 0)
         self._loss_meters = {'rpn_cls_loss': Average(), 'rpn_reg_loss': Average()}
+
+        initializer(self)
 
     def assign_targets_to_anchors(self,
                                   anchors: List[torch.Tensor],
@@ -181,7 +177,7 @@ class RPN(Model):
                'num_anchors_per_level': num_anchors_per_level}
         if boxes is not None:
             labels, matched_gt_boxes = self.assign_targets_to_anchors(
-                    anchors, object_utils.padded_tensor_to_tensor_list(boxes))
+                    anchors, object_utils.unpad(boxes))
             regression_targets = self.box_coder.encode(matched_gt_boxes, anchors)
 
             sampled_pos_inds, sampled_neg_inds = self.sampler(labels)
