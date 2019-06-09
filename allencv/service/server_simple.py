@@ -248,8 +248,8 @@ function processPrediction(prediction) {
     var canvas = document.getElementById("outputCanvas");
     var ctx = canvas.getContext("2d");
     console.log(prediction);
-    for (i = 0; i < prediction['boxes'].length; i++) { 
-        var box = prediction['boxes'][i].map(function (x) { 
+    for (i = 0; i < prediction['box_proposals'].length; i++) { 
+        var box = prediction['box_proposals'][i].map(function (x) { 
           return parseInt(x, 10); 
         });
         ctx.beginPath();
@@ -288,7 +288,7 @@ _PAGE_TEMPLATE = Template("""
                         <h2><span>$title</span></h2>
                         <div class="model__content">
                             <input type="file" class="inputfile"  id="file" name="file" onchange="previewFile()"><br>
-                            <label for="file">Choose a file</label>
+                            <label for="file" class="custom-file-upload">Choose a file</label>
                         </div>
                     </div>
                 </div>
@@ -370,6 +370,16 @@ html {
 * {
   font-family: sans-serif;
   color: #232323
+}
+
+input[type="file"] {
+    display: none;
+}
+.custom-file-upload {
+    border: 1px solid #ccc;
+    display: inline-block;
+    padding: 6px 12px;
+    cursor: pointer;
 }
 
 section {
