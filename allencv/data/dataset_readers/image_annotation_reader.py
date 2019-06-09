@@ -3,6 +3,9 @@ import numpy as np
 from overrides import overrides
 from pathlib import Path
 from PIL import Image
+import shutil
+import tarfile
+import tempfile
 
 from typing import Dict, Iterable, List, Tuple
 import logging
@@ -11,6 +14,7 @@ from allencv.data.dataset_readers.image_dataset_reader import ImageDatasetReader
 from allencv.data.fields import ImageField, BoundingBoxField, KeypointField
 from allencv.data.transforms.image_transform import ImageTransform
 
+from allennlp.common.file_utils import cached_path
 from allennlp.data.instance import Instance
 from allennlp.data.fields import ArrayField, Field, LabelField, ListField
 from allennlp.data.dataset_readers import DatasetReader
@@ -89,6 +93,12 @@ class ImageAnnotationReader(ImageDatasetReader):
         self._include_fields = include_fields
 
     def _read(self, file_path: str) -> Iterable[Instance]:
+        if not Path(file_path).exists():
+            filename = cached_path(str(file_path))
+            tar = tarfile.open(filename, "r:gz")
+            tar.extractall(filename + ".dir")
+            tar.close()
+            file_path = filename + ".dir"
         file_path = Path(file_path)
 
         for image_file in (file_path / self._image_dir).iterdir():
@@ -158,6 +168,7 @@ class ImageAnnotationReader(ImageDatasetReader):
         if self._bbox_class_name in self._include_fields and len(label_class) > 0:
             fields['box_classes'] = ListField([LabelField(idx) for idx in label_class])
         if self._keypoint_name in self._include_fields and len(keypoints) > 0:
+            assert all([len(kp) == len(keypoints[0]) for kp in keypoints])
             fields['keypoint_positions'] = ListField([KeypointField(kp) for kp
                                                       in keypoints])
         return Instance(fields)

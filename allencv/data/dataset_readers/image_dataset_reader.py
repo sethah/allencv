@@ -38,11 +38,16 @@ class ImageDatasetReader(DatasetReader):
                                         keypoint_params={'format': 'xy', 'remove_invisible': False})
 
     def _unflatten_keypoints(self,
-                             keypoints,
-                             visibility,
-                             lengths,
+                             keypoints: List[Tuple[float, float]],
+                             visibility: List[int],
+                             lengths: List[int],
                              image_height: float,
                              image_width: float) -> List[List[Tuple[float, float, float]]]:
+        """
+        Keypoints need to be un-nested so they are per-object. And their visibilities need
+        to be tacked back on, and potentially updated if augmentation moved them out
+        of the image bounds.
+        """
         _kp_visibility = []
         _kp_coords = []
         i = 0
