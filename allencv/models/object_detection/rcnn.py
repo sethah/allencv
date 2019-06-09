@@ -124,7 +124,7 @@ class RCNN(Model):
                                                        proposals, im_sizes)
         loss = 0.
         if self._keypoint_roi_head is not None:
-            if keypoint_positions is not None:
+            if keypoint_positions is not None and self.training:
                 # during training, only focus on positive boxes
                 num_images = len(proposals)
                 keypoint_proposals = []
@@ -135,7 +135,7 @@ class RCNN(Model):
                     keypoint_indices.append(matched_indices[img_id][positive_indices])
             else:
                 keypoint_indices = None
-                keypoint_proposals = object_utils.unpad(boxes)
+                keypoint_proposals = object_utils.unpad(box_proposals)
             keypoint_features = self._keypoint_roi_head.forward(features, keypoint_proposals,
                                                                 im_sizes)
             keypoint_logits = self.kps_score_lowres.forward(keypoint_features)
@@ -143,7 +143,7 @@ class RCNN(Model):
                 keypoint_logits, scale_factor=self._keypoint_upscale, mode="bilinear",
                 align_corners=False)
             out['keypoint_logits'] = keypoint_logits
-            if keypoint_positions is not None:
+            if keypoint_positions is not None and self.training:
                 keypoint_loss = keypointrcnn_loss(keypoint_logits, keypoint_proposals,
                     keypoint_positions, keypoint_indices)
                 out['keypoint_loss'] = keypoint_loss
@@ -160,10 +160,8 @@ class RCNN(Model):
             classifier_loss, regression_loss = fastrcnn_loss(
                 class_logits, box_regression, class_labels, regression_targets)
             loss += 1. * classifier_loss + regression_loss
-            # print(loss)
             if self._train_rpn:
                 loss += rpn_classifier_loss + rpn_regression_loss
-            # print(loss)
             out['loss'] = loss
             self._loss_meters['rpn_cls_loss'](rpn_classifier_loss.item())
             self._loss_meters['rpn_reg_loss'](rpn_regression_loss.item())
@@ -181,6 +179,13 @@ class RCNN(Model):
                                                                                      box_proposals)
             output_dict['keypoint_proposals'] = kp_proposals
             output_dict['keypoint_scores'] = kp_scores
+        all_predictions: List[torch.Tensor] = output_dict['box_labels']
+        if self.vocab is not None:
+            idx2token = self.vocab.get_index_to_token_vocabulary(namespace="labels")
+            all_classes = []
+            for predictions in all_predictions:
+                all_classes.append([idx2token.get(x, 'background') for x in predictions.cpu().numpy().tolist()])
+            output_dict['box_class'] = all_classes
         return output_dict
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:

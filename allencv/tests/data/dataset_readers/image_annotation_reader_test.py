@@ -28,6 +28,13 @@ class TestImageAnnotationReader(AllenCvTestCase):
             inst.index_fields(vocab)
         assert instances[0].as_tensor_dict()['boxes'].shape[1] == 4
 
+    def test_keypoints_off(self):
+        reader = ImageAnnotationReader(num_keypoints=4, keypoints=False)
+        instances = reader.read(self.FIXTURES_ROOT / "data" / "image_annotation")
+        fields = instances[0].fields
+        assert set(fields.keys()) == {'image', 'image_sizes', 'boxes', 'box_classes'}
+
+
     def test_missing_annotations(self):
         reader = ImageAnnotationReader(augmentation=[], annotation_dir='xyz')
         instances = reader.read(self.FIXTURES_ROOT / "data" / "image_annotation")
