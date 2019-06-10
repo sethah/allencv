@@ -13,6 +13,7 @@ local TRAIN_READER = {
         "type": "image_annotation",
         "augmentation": AUGMENTATION,
         "keypoints": true,
+        "num_keypoints": 4,
         "lazy": true
 };
 
@@ -50,7 +51,7 @@ local RPN = {
             "input_height": 7,
             "input_width": 7,
             "feedforward": {
-                "input_dim": 7*7*256,
+                "input_dim": 7 * 7 * 256,
                 "num_layers": 2,
                 "hidden_dims": [256, 256],
                 "activations": 'relu'

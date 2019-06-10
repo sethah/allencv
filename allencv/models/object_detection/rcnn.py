@@ -124,7 +124,7 @@ class RCNN(Model):
                                                        proposals, im_sizes)
         loss = 0.
         if self._keypoint_roi_head is not None:
-            if keypoint_positions is not None and self.training:
+            if keypoint_positions is not None:
                 # during training, only focus on positive boxes
                 num_images = len(proposals)
                 keypoint_proposals = []
@@ -143,7 +143,7 @@ class RCNN(Model):
                 keypoint_logits, scale_factor=self._keypoint_upscale, mode="bilinear",
                 align_corners=False)
             out['keypoint_logits'] = keypoint_logits
-            if keypoint_positions is not None and self.training:
+            if keypoint_positions is not None:
                 keypoint_loss = keypointrcnn_loss(keypoint_logits, keypoint_proposals,
                     keypoint_positions, keypoint_indices)
                 out['keypoint_loss'] = keypoint_loss

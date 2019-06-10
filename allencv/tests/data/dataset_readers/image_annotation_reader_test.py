@@ -34,7 +34,6 @@ class TestImageAnnotationReader(AllenCvTestCase):
         fields = instances[0].fields
         assert set(fields.keys()) == {'image', 'image_sizes', 'boxes', 'box_classes'}
 
-
     def test_missing_annotations(self):
         reader = ImageAnnotationReader(augmentation=[], annotation_dir='xyz')
         instances = reader.read(self.FIXTURES_ROOT / "data" / "image_annotation")
