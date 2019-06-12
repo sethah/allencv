@@ -31,7 +31,7 @@ do
   ls $VOCDIR/SegmentationClass | shuf -n 200 | xargs -i mv $VOCDIR/SegmentationClass/{} $DIR/masks/
   ls $DIR/masks | sed -e 's/\.png$/\.jpg/' | xargs -i mv $VOCDIR/JPEGImages/{} $DIR/images/
 done
-cd ..
+cd $ALLENCV_DIR
 unset VOCDIR
 ```
 

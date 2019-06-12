@@ -60,19 +60,23 @@ local RPN = {
 local MODEL = {
     "type": "faster_rcnn",
     "rpn": RPN,
-    "roi_feature_extractor": {
-        "type": "flatten",
-        "input_channels": 256,
-        "input_height": 7,
-        "input_width": 7,
-        "feedforward": {
-            "input_dim": 7*7*256,
-            "num_layers": 2,
-            "hidden_dims": [1024, 1024],
-            "activations": 'relu'
-        }
-    },
-    num_labels: 21
+    "train_rpn": true,
+    "roi_box_head": {
+        "feature_extractor": {
+            "type": "flatten",
+            "input_channels": 256,
+            "input_height": 7,
+            "input_width": 7,
+            "feedforward": {
+                "input_dim": 7*7*256,
+                "num_layers": 2,
+                "hidden_dims": [256, 256],
+                "activations": 'relu'
+            }
+        },
+        "decoder_thresh": 0.05,
+        "decoder_nms_thresh": 0.2
+    }
 };
 
 {

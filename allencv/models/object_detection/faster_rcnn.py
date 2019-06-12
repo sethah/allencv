@@ -39,6 +39,7 @@ class FasterRCNN(RCNN):
                                          class_agnostic_bbox_reg=class_agnostic_bbox_reg,
                                          initializer=initializer)
 
+
 @Model.register("pretrained_detectron_faster_rcnn")
 class PretrainedDetectronFasterRCNN(RCNN):
 

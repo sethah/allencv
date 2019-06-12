@@ -56,8 +56,9 @@ local BASE_ITERATOR = {
   "model": {
     "type": "basic_image_classifier",
     "im2im_encoder": {
-       "type": "pretrained_resnet",
+       "type": "resnet",
        "resnet_model": "resnet50",
+       "pretrained": true,
        "requires_grad": true
     },
     "im2vec_encoder": {
@@ -77,11 +78,11 @@ local BASE_ITERATOR = {
       "type": "adam",
       "lr": 1e-5,
       "parameter_groups": [
-          [["^_im2im_encoder\\.model\\.(0|1)"], {"initial_lr": 1e-5}],
-          [["^_im2im_encoder\\.model\\.4"], {"initial_lr": 1e-5}],
-          [["^_im2im_encoder\\.model\\.5"], {"initial_lr": 1e-5}],
-          [["^_im2im_encoder\\.model\\.6"], {"initial_lr": 1e-5}],
-          [["^_im2im_encoder\\.model\\.7"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\._encoder\\.layer(0|1)"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\._encoder\\.layer4"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\._encoder\\.layer5"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\._encoder\\.layer6"], {"initial_lr": 1e-5}],
+          [["^_im2im_encoder\\._encoder\\.layer7"], {"initial_lr": 1e-5}],
           [["^_classification_layer"], {"initial_lr": 1e-5}]
      ]
     },
