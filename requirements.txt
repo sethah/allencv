@@ -3,7 +3,7 @@
 
 # main functionality
 torch>=0.4.1
-torchvision==0.3.0
+torchvision
 allennlp
 scipy
 numpy
@@ -24,12 +24,6 @@ pytest>=3.5.0
 
 # Checks style, syntax, and other useful errors.
 pylint==1.9.4
-
-# maskrcnn-benchmark
-ninja
-yacs
-cython
-tqdm
 
 # external requirements
 click

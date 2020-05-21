@@ -73,7 +73,7 @@ class KeypointResize(DualTransform):
 
     def apply_to_keypoint(self, keypoint, **params):
         x, y, a, s = keypoint
-        return [x * self.width / self.img_width, y * self.height / self.img_height, a, s]
+        return tuple([x * self.width / self.img_width, y * self.height / self.img_height, a, s])
 
 
 

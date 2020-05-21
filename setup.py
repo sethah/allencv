@@ -10,7 +10,7 @@ setup(
     python_requires='>=3.6.1',
     install_requires=[
         'torch>=0.4.1',
-        'torchvision==0.3.0',
+        'torchvision>0.3.0',
         'allennlp',
         'numpy',
         'overrides',
